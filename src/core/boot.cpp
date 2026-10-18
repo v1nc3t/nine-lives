@@ -10,30 +10,19 @@ extern const uint8_t boot_gif_end[] asm("_binary_assets_boot_gif_end");
 static constexpr uint32_t BOOT_MS = 5000;
 
 static AnimatedGIF gif;
+static M5Canvas canvas(&M5Cardputer.Display); // whole frame is composed here, then pushed to the LCD in one go (no tearing)
 
-// Called by AnimatedGIF for every decoded line: palette indices -> RGB565 -> screen
+// Called by AnimatedGIF for every decoded line: palette indices -> canvas (RGB565, already in the LCD's byte order)
 static void gifDrawLine(GIFDRAW *d) {
-    static uint16_t line[240];
-    int width = d->iWidth > 240 ? 240 : d->iWidth;
     int y = d->iY + d->y;
+    if (y >= canvas.height() || d->iX >= canvas.width()) return;
+    int width = min<int>(d->iWidth, canvas.width() - d->iX);
+    auto *dst = static_cast<uint16_t *>(canvas.getBuffer()) + y * canvas.width() + d->iX;
     const uint8_t *src = d->pPixels;
 
-    if (!d->ucHasTransparency) {
-        for (int x = 0; x < width; x++) line[x] = d->pPalette[src[x]];
-        M5Cardputer.Display.pushImage(d->iX, y, width, 1, line);
-        return;
-    }
-
     // Frames only store what changed; skip transparent pixels so the previous frame shows through
-    int x = 0;
-    while (x < width) {
-        while (x < width && src[x] == d->ucTransparent) x++;
-        int start = x;
-        while (x < width && src[x] != d->ucTransparent) {
-            line[x] = d->pPalette[src[x]];
-            x++;
-        }
-        if (x > start) M5Cardputer.Display.pushImage(d->iX + start, y, x - start, 1, &line[start]);
+    for (int x = 0; x < width; x++) {
+        if (!d->ucHasTransparency || src[x] != d->ucTransparent) dst[x] = d->pPalette[src[x]];
     }
 }
 
@@ -41,16 +30,29 @@ static void gifDrawLine(GIFDRAW *d) {
 void playBootAnimation() {
     auto &lcd = M5Cardputer.Display;
     lcd.fillScreen(TFT_BLACK);
+    canvas.setColorDepth(16);
+    if (!canvas.createSprite(lcd.width(), lcd.height())) {
+        delay(BOOT_MS); // not enough RAM for the canvas: skip the animation
+        return;
+    }
+    canvas.fillSprite(TFT_BLACK);
+
     // M5GFX reads a uint16_t* as byte-swapped RGB565, so ask the decoder for big-endian colors
     gif.begin(GIF_PALETTE_RGB565_BE);
     uint32_t start = millis();
     if (gif.open(const_cast<uint8_t *>(boot_gif_start), boot_gif_end - boot_gif_start, gifDrawLine)) {
-        lcd.startWrite();
-        while (millis() - start < BOOT_MS && gif.playFrame(true, nullptr)) {
+        uint32_t next = start; // when the next frame is due; decode time counts towards the frame delay
+        int delayMs = 0;
+        while (millis() - start < BOOT_MS) {
+            bool more = gif.playFrame(false, &delayMs);
+            canvas.pushSprite(0, 0);
+            if (!more) break;
+            next += delayMs;
+            while (millis() < next && millis() - start < BOOT_MS) delay(1);
         }
-        lcd.endWrite();
         gif.close();
     }
+    canvas.deleteSprite();
     while (millis() - start < BOOT_MS) delay(10);
     lcd.fillScreen(TFT_BLACK);
 }
