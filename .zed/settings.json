@@ -1,4 +1,7 @@
 {
+  // Zed reloads a file from disk only while its buffer has no unsaved edits.
+  // Saving shortly after every edit keeps buffers clean so outside changes show up.
+  "autosave": { "after_delay": { "milliseconds": 1000 } },
   "lsp": {
     "clangd": {
       "binary": {

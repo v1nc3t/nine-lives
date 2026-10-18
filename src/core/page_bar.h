@@ -1,8 +1,14 @@
 #pragma once
 
-// Digit bar test screen: 1234567890 in a bar at the bottom, the selected digit shown large above it.
-// Call digitBarInit() once in setup(), after playBootAnimation(); pass every typed char to digitBarHandleKey().
-void digitBarInit();
+// Bottom strip: 1234567890, the selected page in bold white.
+static constexpr int PAGE_BAR_H = 16;
 
-// A digit selects it; '<' or ',' moves to the previous one, '>' or '/' to the next (both wrap around).
-void digitBarHandleKey(char c);
+// Draws the whole bar inside its own rectangle.
+void pageBarDraw();
+
+// A digit selects it; ',' (left arrow) moves to the previous one, '/' (right arrow) to the next (both wrap around).
+// Returns true if the selection changed, so the caller knows to redraw.
+bool pageBarHandleKey(char c);
+
+// The selected page's digit, or 0 if nothing is selected yet.
+char pageBarSelectedLabel();

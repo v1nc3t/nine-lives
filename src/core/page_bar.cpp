@@ -4,29 +4,21 @@
 
 static const char DIGITS[] = "1234567890";
 static constexpr int DIGIT_COUNT = sizeof(DIGITS) - 1;
-static constexpr int BAR_H = 16;
 
 static int selected = -1; // index into DIGITS, -1 = nothing pressed yet
 
-static void draw() {
+void pageBarDraw() {
     auto &lcd = M5Cardputer.Display;
     int w = lcd.width();
-    int mainH = lcd.height() - BAR_H;
+    int top = lcd.height() - PAGE_BAR_H;
 
-    lcd.fillScreen(TFT_BLACK);
-    lcd.drawRect(0, 0, w, mainH, TFT_GREEN);
+    lcd.fillRect(0, top, w, PAGE_BAR_H, TFT_BLACK);
     lcd.setTextDatum(middle_center);
 
-    if (selected >= 0) {
-        lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-        lcd.setTextSize(6);
-        lcd.drawString(String(DIGITS[selected]), w / 2, mainH / 2);
-    }
-
-    // Bottom bar: the GFX fonts have no bold, so the selected digit is drawn twice, 1 px apart
-    lcd.setTextSize(1);
+    // The GFX fonts have no bold, so the selected digit is drawn twice, 1 px apart
+    lcd.setTextSize(1.2);
     int cell = w / DIGIT_COUNT;
-    int y = mainH + BAR_H / 2;
+    int y = top + PAGE_BAR_H / 2;
     for (int i = 0; i < DIGIT_COUNT; i++) {
         int x = i * cell + cell / 2;
         bool on = i == selected;
@@ -36,20 +28,20 @@ static void draw() {
     }
 }
 
-void digitBarInit() {
-    draw();
-}
-
-void digitBarHandleKey(char c) {
+bool pageBarHandleKey(char c) {
     const char *p = c ? strchr(DIGITS, c) : nullptr;
     if (p) {
         selected = p - DIGITS;
-        draw();
     } else if (c == ',') {  // left arrow on keyboard (fn key)
         selected = (selected <= 0 ? DIGIT_COUNT : selected) - 1; // wraps; from "nothing" goes to last
-        draw();
     } else if (c == '/') {  // right arrow on keyboard (fn key)
         selected = (selected + 1) % DIGIT_COUNT; // wraps; from "nothing" goes to first
-        draw();
+    } else {
+        return false;
     }
+    return true;
+}
+
+char pageBarSelectedLabel() {
+    return selected >= 0 ? DIGITS[selected] : 0;
 }
