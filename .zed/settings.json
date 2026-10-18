@@ -1,0 +1,10 @@
+{
+  "lsp": {
+    "clangd": {
+      "binary": {
+        // Lets clangd ask the Xtensa GCC for its system include paths
+        "arguments": ["--query-driver=**/xtensa-esp32s3-elf-*"]
+      }
+    }
+  }
+}

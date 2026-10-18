@@ -1,0 +1,5 @@
+CompileFlags:
+  # Flags only the Xtensa GCC understands; clang rejects them.
+  Remove: [-mlongcalls, -mtext-section-literals, -fstrict-volatile-bitfields, -fno-tree-switch-conversion, -freorder-blocks, -fno-shrink-wrap, -mfix-esp32-psram-cache-issue, -mfix-esp32-psram-cache-strategy=*]
+Diagnostics:
+  Suppress: [drv_unknown_argument]
