@@ -2,8 +2,24 @@
 
 #include "core/boot.h"
 #include "core/main_screen.h"
+#include "core/page.h"
 #include "core/page_bar.h"
 #include "core/status_bar.h"
+
+// Draws the open page, or the main screen with the page bar.
+static void pageDraw() {
+    if (const Page *page = pageOpened()) {
+        page->draw();
+        return;
+    }
+    const Page *page = pageFor(pageBarSelectedLabel());
+    if (page) {
+        mainScreenDraw(page->name, page->description);
+    } else {
+        mainScreenDraw(nullptr, nullptr);
+    }
+    pageBarDraw();
+}
 
 void setup() {
     auto cfg = M5.config();
@@ -12,20 +28,34 @@ void setup() {
     playBootAnimation();
 
     statusBarDraw();
-    mainScreenDraw(pageBarSelectedLabel());
-    pageBarDraw();
+    pageDraw();
 }
 
 void loop() {
     M5Cardputer.update();
     statusBarUpdate();
 
-    if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
-        for (char c : M5Cardputer.Keyboard.keysState().word) {
-            if (pageBarHandleKey(c)) {
-                mainScreenDraw(pageBarSelectedLabel());
-                pageBarDraw();
+    bool keyPressed = M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed();
+    bool redraw = false;
+
+    if (const Page *page = pageOpened()) {
+        if (keyPressed) redraw = page->handleKey(M5Cardputer.Keyboard.keysState());
+    } else {
+        bool open = M5Cardputer.BtnA.wasPressed(); // BtnGO
+        if (keyPressed) {
+            auto keys = M5Cardputer.Keyboard.keysState();
+            for (char c : keys.word) {
+                redraw |= pageBarHandleKey(c);
+            }
+            open |= keys.enter;
+        }
+        if (open) {
+            if (const Page *page = pageFor(pageBarSelectedLabel())) {
+                pageOpen(page);
+                redraw = true;
             }
         }
     }
+
+    if (redraw) pageDraw();
 }

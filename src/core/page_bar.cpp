@@ -5,7 +5,7 @@
 static const char DIGITS[] = "1234567890";
 static constexpr int DIGIT_COUNT = sizeof(DIGITS) - 1;
 
-static int selected = -1; // index into DIGITS, -1 = nothing pressed yet
+static int selected = 0; // index into DIGITS, starts on page 1
 
 void pageBarDraw() {
     auto &lcd = M5Cardputer.Display;
@@ -33,9 +33,9 @@ bool pageBarHandleKey(char c) {
     if (p) {
         selected = p - DIGITS;
     } else if (c == ',') {  // left arrow on keyboard (fn key)
-        selected = (selected <= 0 ? DIGIT_COUNT : selected) - 1; // wraps; from "nothing" goes to last
+        selected = (selected <= 0 ? DIGIT_COUNT : selected) - 1; // wraps
     } else if (c == '/') {  // right arrow on keyboard (fn key)
-        selected = (selected + 1) % DIGIT_COUNT; // wraps; from "nothing" goes to first
+        selected = (selected + 1) % DIGIT_COUNT; // wraps
     } else {
         return false;
     }

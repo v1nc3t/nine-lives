@@ -10,5 +10,5 @@ void pageBarDraw();
 // Returns true if the selection changed, so the caller knows to redraw.
 bool pageBarHandleKey(char c);
 
-// The selected page's digit, or 0 if nothing is selected yet.
+// The selected page's digit.
 char pageBarSelectedLabel();
