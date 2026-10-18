@@ -51,6 +51,16 @@ Useful objects: `M5Cardputer.Display` (screen), `M5Cardputer.Keyboard`, `M5Cardp
 
 Libraries are declared in `platformio.ini` under `lib_deps`; add more there and PlatformIO fetches them on the next build.
 
+## Boot animation
+
+`assets/boot.gif` plays at startup for 5 seconds (`BOOT_MS` and `playBootAnimation()` in `src/core/boot.cpp`, called from `setup()` in `src/main.cpp`; the last frame is held if the GIF is shorter, and it is cut off if longer). It is linked into flash through `board_build.embed_files` in `platformio.ini` and decoded frame by frame with [AnimatedGIF](https://github.com/bitbank2/AnimatedGIF), so the original 1280x720 file cannot be used directly. To make a new one from any video or GIF (240x135 is the screen size; keep it under about 500 KB):
+
+```bash
+ffmpeg -i input.gif -vf "fps=15,scale=240:135:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" -loop -1 assets/boot.gif
+```
+
+`-loop -1` plays it once. Lower `fps` or `max_colors` to shrink the file. If you rename the GIF, update the path in `platformio.ini` and the `_binary_assets_..._start/_end` symbol names in `src/core/boot.cpp`. M5GFX reads a `uint16_t*` as byte-swapped RGB565, which is why the decoder is started with `GIF_PALETTE_RGB565_BE`.
+
 ## Editor setup (clangd)
 
 If your editor shows errors such as `Use of undeclared identifier 'M5Cardputer'` even though `pio run` works, generate the compilation database and restart the language server:
