@@ -5,17 +5,19 @@
 
 static constexpr const char *NAMESPACE = "nine-lives";
 static constexpr int BRIGHTNESS_DEFAULT = 7;
-static constexpr int TIMEOUT_DEFAULT = 1; // 30s
+static constexpr int SLEEP_DEFAULT = 1;      // 30s
+static constexpr int DEEP_SLEEP_DEFAULT = 4; // 5m
 
 struct Timeout {
     const char *label;
     uint16_t seconds;
 };
-static const Timeout TIMEOUTS[] = {{"15s", 15}, {"30s", 30}, {"1m", 60}, {"2m", 120}, {"5m", 300}, {"never", 0}};
+static const Timeout TIMEOUTS[] = {{"15s", 15}, {"30s", 30}, {"1m", 60}, {"2m", 120}, {"5m", 300}, {"10m", 600}, {"30m", 1800}, {"never", 0}};
 static constexpr int TIMEOUT_COUNT = sizeof(TIMEOUTS) / sizeof(TIMEOUTS[0]);
 
 static int brightness = BRIGHTNESS_DEFAULT;
-static int timeout = TIMEOUT_DEFAULT;
+static int sleepStep = SLEEP_DEFAULT;
+static int deepSleepStep = DEEP_SLEEP_DEFAULT;
 
 static void brightnessApply() {
     // Squared so the low steps are really dim (step 1 is 2/255) while the top step is still full
@@ -33,7 +35,8 @@ void settingsLoad() {
     Preferences prefs;
     prefs.begin(NAMESPACE, true);
     brightness = constrain((int)prefs.getUChar("brightness", BRIGHTNESS_DEFAULT), BRIGHTNESS_MIN, BRIGHTNESS_MAX);
-    timeout = constrain((int)prefs.getUChar("timeout", TIMEOUT_DEFAULT), 0, TIMEOUT_COUNT - 1);
+    sleepStep = constrain((int)prefs.getUChar("sleep", SLEEP_DEFAULT), 0, TIMEOUT_COUNT - 1);
+    deepSleepStep = constrain((int)prefs.getUChar("deepsleep", DEEP_SLEEP_DEFAULT), sleepStep, TIMEOUT_COUNT - 1);
     prefs.end();
     brightnessApply();
 }
@@ -49,13 +52,25 @@ void brightnessSet(int level) {
 }
 
 int timeoutCount() { return TIMEOUT_COUNT; }
-int timeoutLevel() { return timeout; }
-const char *timeoutLabel() { return TIMEOUTS[timeout].label; }
-unsigned timeoutSeconds() { return TIMEOUTS[timeout].seconds; }
 
-void timeoutSet(int level) {
+static void timeoutSet(int &step, const char *key, int level) {
     level = constrain(level, 0, TIMEOUT_COUNT - 1);
-    if (level == timeout) return;
-    timeout = level;
-    save("timeout", timeout);
+    if (level == step) return;
+    step = level;
+    save(key, step);
 }
+
+void deepSleepSet(int level);
+
+int sleepLevel() { return sleepStep; }
+void sleepSet(int level) {
+    timeoutSet(sleepStep, "sleep", level);
+    deepSleepSet(deepSleepStep); // pushes deep sleep up if sleep now passed it
+}
+const char *sleepLabel() { return TIMEOUTS[sleepStep].label; }
+unsigned sleepSeconds() { return TIMEOUTS[sleepStep].seconds; }
+
+int deepSleepLevel() { return deepSleepStep; }
+void deepSleepSet(int level) { timeoutSet(deepSleepStep, "deepsleep", max(level, sleepStep)); }
+const char *deepSleepLabel() { return TIMEOUTS[deepSleepStep].label; }
+unsigned deepSleepSeconds() { return TIMEOUTS[deepSleepStep].seconds; }

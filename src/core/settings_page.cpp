@@ -3,7 +3,7 @@
 #include "page.h"
 #include "settings.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_TIMEOUT, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_COUNT };
 
 static int selected = ROW_BACK;
 
@@ -36,25 +36,26 @@ static void brightnessRowDraw() {
     }
 }
 
-static void timeoutRowDraw() {
+static void timeoutRowDraw(Row row, const char *label, const char *value) {
     auto &lcd = M5Cardputer.Display;
-    rowLabelDraw(ROW_TIMEOUT, "sleep after");
+    rowLabelDraw(row, label);
 
-    // Arrows stay put; the label is centred between them
+    // Arrows stay put; the value is centred between them
     int right = lcd.width() - 8;
-    int y = rowY(ROW_TIMEOUT) + PAGE_ROW_H / 2;
+    int y = rowY(row) + PAGE_ROW_H / 2;
     lcd.setTextDatum(middle_left);
     lcd.drawString("<", right - TIMEOUT_VALUE_W, y);
     lcd.setTextDatum(middle_right);
     lcd.drawString(">", right, y);
     lcd.setTextDatum(middle_center);
-    lcd.drawString(timeoutLabel(), right - TIMEOUT_VALUE_W / 2, y);
+    lcd.drawString(value, right - TIMEOUT_VALUE_W / 2, y);
 }
 
 void settingsPageDraw() {
     pageHeaderDraw();
     brightnessRowDraw();
-    timeoutRowDraw();
+    timeoutRowDraw(ROW_SLEEP, "sleep", sleepLabel());
+    timeoutRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel());
 
     // Box around the selected row
     M5Cardputer.Display.drawRect(3, rowY(selected) + 1, M5Cardputer.Display.width() - 6, PAGE_ROW_H - 2, TFT_GREEN);
@@ -68,10 +69,14 @@ static bool valueStep(int dir) {
         before = brightnessLevel();
         brightnessSet(before + dir);
         return brightnessLevel() != before;
-    case ROW_TIMEOUT:
-        before = timeoutLevel();
-        timeoutSet(before + dir);
-        return timeoutLevel() != before;
+    case ROW_SLEEP:
+        before = sleepLevel();
+        sleepSet(before + dir);
+        return sleepLevel() != before;
+    case ROW_DEEP_SLEEP:
+        before = deepSleepLevel();
+        deepSleepSet(before + dir);
+        return deepSleepLevel() != before;
     default:
         return false;
     }

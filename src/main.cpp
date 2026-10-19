@@ -42,7 +42,10 @@ void loop() {
 
     bool keyChanged = M5Cardputer.Keyboard.isChange(); // stateful: call once per loop
     if (keyChanged || M5Cardputer.BtnA.isPressed()) powerActivity();
-    powerUpdate();
+    if (powerUpdate()) { // woke from sleep: the screen needs repainting before the backlight is back
+        statusBarDraw();
+        pageDraw();
+    }
 
     bool keyPressed = keyChanged && M5Cardputer.Keyboard.isPressed();
     bool redraw = false;

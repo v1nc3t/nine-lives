@@ -37,7 +37,7 @@ Each module is one issue, and the bullet points inside it are its tasks. Order: 
 [ ] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
 [ ] SD card layout: folders, config file, handle a missing or broken card
 [ ] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, time zone, cat animation and sound on/off
-[ ] Power: sleep, wake, battery level, low battery warning
+[x] Power: sleep, wake, battery level, low battery warning
 [ ] Time: read and set the RTC, sync with NTP over Wi-Fi or from an iPhone over Bluetooth, set by hand (used by 2FA, habits, cat game and voice memos)
 [ ] Sound: play tones and chimes on the speaker (used by cat, pager, timer, messenger)
 [ ] Power saving: screen turns off when idle, lower CPU speed when idle, Wi-Fi off after sync, deep sleep when nothing is running, wake with a button

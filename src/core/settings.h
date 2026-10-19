@@ -11,9 +11,15 @@ static constexpr int BRIGHTNESS_MAX = 10;
 int brightnessLevel();
 void brightnessSet(int level); // clamps, applies to the screen and saves
 
-// Idle time before the screen goes blank and the device deep-sleeps (see power.h). A step in a fixed list.
+// Idle times (see power.h), each a step in the same fixed list. Sleep blanks the screen and any key wakes it;
+// deep sleep powers almost everything down and only BtnGO wakes it. Deep sleep is never earlier than sleep:
+// raising sleep past it pushes it up too, and it can't be lowered below sleep.
 int timeoutCount();
-int timeoutLevel();
-void timeoutSet(int level);       // clamps and saves
-const char *timeoutLabel();       // e.g. "30s", "never"
-unsigned timeoutSeconds();        // 0 means never
+int sleepLevel();
+void sleepSet(int level);         // clamps and saves
+const char *sleepLabel();         // e.g. "30s", "never"
+unsigned sleepSeconds();          // 0 means never
+int deepSleepLevel();
+void deepSleepSet(int level);
+const char *deepSleepLabel();
+unsigned deepSleepSeconds();
