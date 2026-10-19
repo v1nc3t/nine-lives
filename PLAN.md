@@ -32,7 +32,7 @@ Each module is one issue, and the bullet points inside it are its tasks. Order: 
  
 ## 0. Core (shared by all modules) 
 [x] Project setup: build system (PlatformIO), M5Cardputer library, folders, CI build
-[ ] Main menu: list of modules, keyboard navigation, status bar (time, battery, Wi-Fi, Bluetooth, USB)
+[x] Main menu: list of modules, keyboard navigation, status bar (time, battery, Wi-Fi, Bluetooth, USB)
 [ ] Keyboard input: key events, key repeat, shift/ctrl, text input box
 [ ] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
 [ ] SD card layout: folders, config file, handle a missing or broken card

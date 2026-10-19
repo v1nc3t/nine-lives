@@ -4,6 +4,7 @@
 #include "core/main_screen.h"
 #include "core/page.h"
 #include "core/page_bar.h"
+#include "core/settings.h"
 #include "core/status_bar.h"
 
 // Draws the open page, or the main screen with the page bar.
@@ -25,6 +26,7 @@ void setup() {
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     M5Cardputer.Display.setRotation(1);
+    settingsLoad();
     playBootAnimation();
 
     statusBarDraw();

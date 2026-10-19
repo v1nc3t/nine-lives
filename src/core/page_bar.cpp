@@ -1,4 +1,5 @@
 #include "page_bar.h"
+#include "lgfx/v1/misc/enum.hpp"
 
 #include <M5Cardputer.h>
 
@@ -22,7 +23,7 @@ void pageBarDraw() {
     for (int i = 0; i < DIGIT_COUNT; i++) {
         int x = i * cell + cell / 2;
         bool on = i == selected;
-        lcd.setTextColor(on ? TFT_WHITE : TFT_DARKGREY, TFT_BLACK);
+        lcd.setTextColor(on ? TFT_GREEN : TFT_DARKGREY, TFT_BLACK);
         lcd.drawString(String(DIGITS[i]), x, y);
         if (on) lcd.drawString(String(DIGITS[i]), x + 1, y);
     }
