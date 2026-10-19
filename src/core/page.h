@@ -26,7 +26,7 @@ void pageOpen(const Page *page);
 void pageClose();
 const Page *pageOpened();
 
-// Clears the area and draws the green frame. The main screen passes true to leave room for the page bar.
+// Clears the area and draws the frame in the theme color. The main screen passes true to leave room for the page bar.
 void pageFrameDraw(bool pageBarVisible = false);
 
 // The structure every open page shares: frame, then a back row ('<') on the first row, then free content.

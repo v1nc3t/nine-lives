@@ -2,6 +2,9 @@
 
 #include <M5Cardputer.h>
 #include <Preferences.h>
+#include <cstring>
+
+#include "theme.h"
 
 static constexpr const char *NAMESPACE = "nine-lives";
 static constexpr int BRIGHTNESS_DEFAULT = 7;
@@ -33,6 +36,7 @@ static int deepSleepStep = DEEP_SLEEP_DEFAULT;
 static int timezone = TIMEZONE_UTC;
 static int led = LED_DEFAULT;
 static int ledColor = LED_COLOR_DEFAULT;
+static int theme = 0;
 static bool wifi = false;
 static bool saving = false;
 
@@ -68,6 +72,7 @@ void settingsLoad() {
     timezone = constrain((int)prefs.getUChar("timezone", TIMEZONE_UTC), 0, TIMEZONE_STEPS - 1);
     led = constrain((int)prefs.getUChar("led", LED_DEFAULT), LED_MIN, LED_MAX);
     ledColor = constrain((int)prefs.getUChar("ledcolor", LED_COLOR_DEFAULT), 0, LED_COLOR_COUNT - 1);
+    theme = constrain((int)prefs.getUChar("theme", 0), 0, themeCount() - 1);
     wifi = prefs.getUChar("wifi", 0) != 0;
     saving = prefs.getUChar("saving", 0) != 0;
     prefs.end();
@@ -170,3 +175,19 @@ const char *ledColorLabel() { return LED_COLORS[ledColor].label; }
 uint32_t ledColorRgb() { return LED_COLORS[ledColor].rgb; }
 
 void ledOff() { neopixelWrite(LED_PIN, 0, 0, 0); }
+
+int themeLevel() { return theme; }
+
+void themeSet(int level) {
+    int count = themeCount();
+    level = (level % count + count) % count;
+    if (level == theme) return;
+    theme = level;
+    save("theme", theme);
+    for (int i = 0; i < LED_COLOR_COUNT; i++) {
+        if (strcmp(LED_COLORS[i].label, themeLedColor(theme)) == 0) {
+            ledColorSet(i);
+            break;
+        }
+    }
+}

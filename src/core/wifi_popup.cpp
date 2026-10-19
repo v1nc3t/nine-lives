@@ -1,4 +1,5 @@
 #include "wifi_popup.h"
+#include "theme.h"
 
 #include "page.h"
 #include "settings.h"
@@ -119,9 +120,9 @@ static void listDraw() {
         const WifiNetwork &net = wifiNetwork(top + row);
         int y = LIST_Y + row * LIST_ROW_H;
         bool on = top + row == selected;
-        uint16_t color = on ? TFT_GREEN : TFT_WHITE;
+        uint16_t color = on ? themeColor() : TFT_WHITE;
 
-        if (on) lcd.drawRect(POPUP_X + 3, y, POPUP_W - 6, LIST_ROW_H, TFT_GREEN);
+        if (on) lcd.drawRect(POPUP_X + 3, y, POPUP_W - 6, LIST_ROW_H, themeColor());
         if (wifiPasswordSaved(net.ssid)) checkDraw(POPUP_X + 8, y + 4, color);
         else if (net.secured) padlockDraw(POPUP_X + 8, y + 4, color);
         char name[33];
@@ -141,7 +142,7 @@ static void passwordDraw() {
     shownCaps = textInputCaps();
     if (shownCaps) {
         lcd.setTextDatum(middle_right);
-        lcd.setTextColor(TFT_GREEN, TFT_BLACK);
+        lcd.setTextColor(themeColor(), TFT_BLACK);
         lcd.drawString("CAPS", POPUP_X + POPUP_W - 8, POPUP_Y + 33);
     }
 
@@ -156,7 +157,7 @@ static void passwordDraw() {
 void wifiPopupDraw() {
     auto &lcd = M5Cardputer.Display;
     lcd.fillRect(POPUP_X, POPUP_Y, POPUP_W, POPUP_H, TFT_BLACK);
-    lcd.drawRect(POPUP_X, POPUP_Y, POPUP_W, POPUP_H, TFT_GREEN);
+    lcd.drawRect(POPUP_X, POPUP_Y, POPUP_W, POPUP_H, themeColor());
 
     switch (state) {
     case SAVING:

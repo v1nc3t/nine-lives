@@ -1,4 +1,5 @@
 #include "settings_page.h"
+#include "theme.h"
 
 #include "clock.h"
 #include "page.h"
@@ -6,7 +7,7 @@
 #include "wifi.h"
 #include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_COUNT };
 
 static int selected = ROW_BACK;
 static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
@@ -111,7 +112,7 @@ static void timePopupDraw() {
     int x = (lcd.width() - POPUP_W) / 2;
     int y = STATUS_BAR_H + (lcd.height() - STATUS_BAR_H - POPUP_H) / 2;
     lcd.fillRect(x, y, POPUP_W, POPUP_H, TFT_BLACK);
-    lcd.drawRect(x, y, POPUP_W, POPUP_H, TFT_GREEN);
+    lcd.drawRect(x, y, POPUP_W, POPUP_H, themeColor());
 
     lcd.setTextDatum(middle_center);
     lcd.setTextSize(1.5);
@@ -130,7 +131,7 @@ static void timePopupDraw() {
         lcd.drawString(text, left + i * slotW + slotW / 2, cy);
     }
     int cx = left + (timeCursor < 2 ? timeCursor : timeCursor + 1) * slotW;
-    lcd.fillRect(cx, cy + 14, slotW, 2, TFT_GREEN);
+    lcd.fillRect(cx, cy + 14, slotW, 2, themeColor());
 }
 
 static void rowDraw(Row row) {
@@ -144,6 +145,7 @@ static void rowDraw(Row row) {
         valueRowDraw(ROW_LED_COLOR, "led color", ledColorLabel(), M5Cardputer.Display.color565(rgb >> 16, rgb >> 8, rgb));
         break;
     }
+    case ROW_THEME:      valueRowDraw(ROW_THEME, "theme", themeLabel(), themeColor()); break;
     case ROW_SLEEP:      valueRowDraw(ROW_SLEEP, "sleep", sleepLabel()); break;
     case ROW_DEEP_SLEEP: valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel()); break;
     case ROW_TIME:       timeRowDraw(); break;
@@ -162,7 +164,7 @@ static void scrollBarDraw() {
     int thumbH = trackH * visibleRows() / ROW_COUNT;
     int thumbY = trackY + (trackH - thumbH) * top / (ROW_COUNT - visibleRows());
     lcd.fillRect(lcd.width() - 3, trackY, 2, trackH, TFT_DARKGREY);
-    lcd.fillRect(lcd.width() - 3, thumbY, 2, thumbH, TFT_GREEN);
+    lcd.fillRect(lcd.width() - 3, thumbY, 2, thumbH, themeColor());
 }
 
 void settingsPageDraw() {
@@ -179,7 +181,7 @@ void settingsPageDraw() {
     if (ROW_COUNT > visibleRows()) scrollBarDraw();
 
     // Box around the selected row
-    M5Cardputer.Display.drawRect(3, rowY(selected) + 1, M5Cardputer.Display.width() - 8, PAGE_ROW_H - 2, TFT_GREEN);
+    M5Cardputer.Display.drawRect(3, rowY(selected) + 1, M5Cardputer.Display.width() - 8, PAGE_ROW_H - 2, themeColor());
 
     if (timeEditing) timePopupDraw();
 }
@@ -205,6 +207,9 @@ static bool valueStep(int dir) {
         before = ledColorLevel();
         ledColorSet(before + dir);
         return ledColorLevel() != before;
+    case ROW_THEME:
+        themeSet(themeLevel() + dir);
+        return true;
     case ROW_SLEEP:
         before = sleepLevel();
         sleepSet(before + dir);

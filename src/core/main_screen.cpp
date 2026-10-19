@@ -1,4 +1,5 @@
 #include "main_screen.h"
+#include "theme.h"
 
 #include <M5Cardputer.h>
 
@@ -25,7 +26,7 @@ void mainScreenDraw(const char *name, const char *description) {
         lcd.setTextColor(TFT_WHITE, TFT_BLACK);
         lcd.setTextSize(3);
         lcd.drawString(name, w / 2, STATUS_BAR_H + h / 2 - 10);
-        lcd.setTextColor(TFT_GREEN, TFT_BLACK);
+        lcd.setTextColor(themeColor(), TFT_BLACK);
         lcd.setTextSize(1.5);
         lcd.drawString(description, w / 2, STATUS_BAR_H + h / 2 + 18);
     }

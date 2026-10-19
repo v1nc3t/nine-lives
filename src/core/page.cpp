@@ -1,4 +1,5 @@
 #include "page.h"
+#include "theme.h"
 
 #include "settings_page.h"
 
@@ -39,7 +40,7 @@ void pageFrameDraw(bool pageBarVisible) {
     int h = lcd.height() - STATUS_BAR_H - (pageBarVisible ? PAGE_BAR_H : 0);
 
     lcd.fillRect(0, STATUS_BAR_H, w, h, TFT_BLACK);
-    lcd.drawRect(0, STATUS_BAR_H, w, h, TFT_GREEN);
+    lcd.drawRect(0, STATUS_BAR_H, w, h, themeColor());
 }
 
 void pageHeaderDraw() {

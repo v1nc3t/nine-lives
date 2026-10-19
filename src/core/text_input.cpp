@@ -1,4 +1,5 @@
 #include "text_input.h"
+#include "theme.h"
 
 static constexpr int MAX_HELD = 8;
 
@@ -151,5 +152,5 @@ void textFieldDraw(TextField &field, int x, int y, int w, int h) {
     lcd.drawString(shown, x + 4, y + h / 2);
 
     int cx = x + 4 + (field.cursor - field.first) * charW;
-    lcd.fillRect(cx, y + 3, 2, h - 6, TFT_GREEN);
+    lcd.fillRect(cx, y + 3, 2, h - 6, themeColor());
 }
