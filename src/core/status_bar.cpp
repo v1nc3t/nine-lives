@@ -3,10 +3,16 @@
 #include <M5Cardputer.h>
 
 static constexpr uint32_t CHECK_MS = 5000;
+static constexpr int LOW_LEVEL = 15; // percent; at or below this (and not charging) the level turns red
 
-static int drawnLevel = -1; // battery level shown right now
+static int drawnLevel = -1;   // battery level shown right now
+static bool drawnLow = false; // whether it was drawn as a warning
 
-static void draw(int level) {
+static bool isLow(int level) {
+    return level <= LOW_LEVEL && M5Cardputer.Power.isCharging() != m5::Power_Class::is_charging;
+}
+
+static void draw(int level, bool low) {
     auto &lcd = M5Cardputer.Display;
     int w = lcd.width();
 
@@ -17,12 +23,15 @@ static void draw(int level) {
     lcd.drawString("nine lives", 4, STATUS_BAR_H / 2);
 
     lcd.setTextDatum(middle_right);
-    lcd.drawString(String(level) + "%", w - 4, STATUS_BAR_H / 2);
+    if (low) lcd.setTextColor(TFT_RED, TFT_BLACK);
+    lcd.drawString((low ? "LOW " : "") + String(level) + "%", w - 4, STATUS_BAR_H / 2);
     drawnLevel = level;
+    drawnLow = low;
 }
 
 void statusBarDraw() {
-    draw(M5Cardputer.Power.getBatteryLevel());
+    int level = M5Cardputer.Power.getBatteryLevel();
+    draw(level, isLow(level));
 }
 
 void statusBarUpdate() {
@@ -31,5 +40,6 @@ void statusBarUpdate() {
     last = millis();
 
     int level = M5Cardputer.Power.getBatteryLevel();
-    if (level != drawnLevel) draw(level);
+    bool low = isLow(level);
+    if (level != drawnLevel || low != drawnLow) draw(level, low);
 }

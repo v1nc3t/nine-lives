@@ -1,6 +1,6 @@
 #pragma once
 
-// Top strip: title on the left, battery level on the right.
+// Top strip: title on the left, battery level on the right (red "LOW" when nearly empty and not charging).
 static constexpr int STATUS_BAR_H = 14;
 
 // Draws the whole bar inside its own rectangle.
