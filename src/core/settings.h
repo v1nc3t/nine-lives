@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 // User settings, kept in the chip's flash (NVS) so they survive a reboot.
 
 // Call once in setup() after M5Cardputer.begin(): applies the saved settings.
@@ -38,3 +40,15 @@ void powerSavingSet(bool on); // saves; the caller applies it to the radio with 
 // Wi-Fi radio on or off (see wifi.h for switching it; this is only what is saved). Off by default.
 bool wifiOn();
 void wifiOnSet(bool on); // saves
+
+// RGB LED on the front, as a brightness step from LED_MIN (off) to LED_MAX and one of a short list of colors.
+static constexpr int LED_MIN = 0;
+static constexpr int LED_MAX = 10;
+int ledLevel();
+void ledSet(int level); // clamps, applies to the LED and saves
+int ledColorCount();
+int ledColorLevel();
+void ledColorSet(int level);   // wraps round, applies to the LED and saves
+const char *ledColorLabel();   // e.g. "red"
+uint32_t ledColorRgb();        // 0xRRGGBB of the selected color, to tint the label
+void ledOff();                 // lights out without touching the saved setting (the LED keeps its last color through deep sleep)

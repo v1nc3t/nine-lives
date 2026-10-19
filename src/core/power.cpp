@@ -23,6 +23,7 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
 [[noreturn]] static void deepSleepNow() {
     auto &lcd = M5Cardputer.Display;
     lcd.setBrightness(0);
+    ledOff();
     lcd.sleep();
     lcd.waitDisplay();
     M5Cardputer.Speaker.end();

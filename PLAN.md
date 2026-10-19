@@ -33,12 +33,12 @@ Each module is one issue, and the bullet points inside it are its tasks. Order: 
 ## 0. Core (shared by all modules) 
 [x] Project setup: build system (PlatformIO), M5Cardputer library, folders, CI build
 [x] Main menu: list of modules, keyboard navigation, status bar (time, battery, Wi-Fi, Bluetooth, USB)
-[ ] Keyboard input: key events, key repeat, shift/ctrl, text input box
-[ ] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
+[x] Keyboard input: key events, key repeat, shift/ctrl, text input box
+[x] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
 [ ] SD card layout: folders, config file, handle a missing or broken card
-[ ] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, time zone, cat animation and sound on/off
+[x] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, time zone, cat animation and sound on/off
 [x] Power: sleep, wake, battery level, low battery warning
-[ ] Time: read and set the RTC, sync with NTP over Wi-Fi or from an iPhone over Bluetooth, set by hand (used by 2FA, habits, cat game and voice memos)
+[x] Time: read and set the RTC, sync with NTP over Wi-Fi or from an iPhone over Bluetooth, set by hand (used by 2FA, habits, cat game and voice memos)
 [ ] Sound: play tones and chimes on the speaker (used by cat, pager, timer, messenger)
 [x] Power saving: screen turns off when idle, lower CPU speed when idle, Wi-Fi off after sync, deep sleep when nothing is running, wake with a button
 [ ] Vault key service: one place that holds the unlocked vault key in RAM and wipes it on lock; 2FA, notes, messenger and voice memos ask it to encrypt and decrypt

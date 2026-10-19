@@ -6,13 +6,14 @@
 #include "wifi.h"
 #include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_COUNT };
 
 static int selected = ROW_BACK;
 static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
 static char drawnNetwork[33] = ""; // network name on the connect row right now
 
-static constexpr int BAR_SEGMENTS = BRIGHTNESS_MAX;
+static constexpr int BAR_SEGMENTS = BRIGHTNESS_MAX; // the LED bar has the same number (LED_MAX)
+static_assert(LED_MAX == BRIGHTNESS_MAX, "both rows share one bar size");
 static constexpr int BAR_SEGMENT_W = 10;
 static constexpr int BAR_SEGMENT_GAP = 2;
 static constexpr int BAR_W = BAR_SEGMENTS * (BAR_SEGMENT_W + BAR_SEGMENT_GAP) - BAR_SEGMENT_GAP;
@@ -39,19 +40,20 @@ static void rowLabelDraw(Row row, const char *label) {
     lcd.drawString(label, 8, rowY(row) + PAGE_ROW_H / 2);
 }
 
-static void brightnessRowDraw() {
+// Label and a bar of BAR_SEGMENTS segments, `level` of them filled
+static void barRowDraw(Row row, const char *label, int level) {
     auto &lcd = M5Cardputer.Display;
-    int y = rowY(ROW_BRIGHTNESS);
-    rowLabelDraw(ROW_BRIGHTNESS, "brightness");
+    int y = rowY(row);
+    rowLabelDraw(row, label);
 
     int x = lcd.width() - 8 - BAR_W;
     for (int i = 0; i < BAR_SEGMENTS; i++) {
         int sx = x + i * (BAR_SEGMENT_W + BAR_SEGMENT_GAP);
-        lcd.fillRect(sx, y + 5, BAR_SEGMENT_W, PAGE_ROW_H - 10, i < brightnessLevel() ? TFT_WHITE : TFT_DARKGREY);
+        lcd.fillRect(sx, y + 5, BAR_SEGMENT_W, PAGE_ROW_H - 10, i < level ? TFT_WHITE : TFT_DARKGREY);
     }
 }
 
-static void valueRowDraw(Row row, const char *label, const char *value) {
+static void valueRowDraw(Row row, const char *label, const char *value, uint16_t color = TFT_WHITE) {
     auto &lcd = M5Cardputer.Display;
     rowLabelDraw(row, label);
 
@@ -63,6 +65,7 @@ static void valueRowDraw(Row row, const char *label, const char *value) {
     lcd.setTextDatum(middle_right);
     lcd.drawString(">", right, y);
     lcd.setTextDatum(middle_center);
+    lcd.setTextColor(color, TFT_BLACK);
     lcd.drawString(value, right - VALUE_W / 2, y);
 }
 
@@ -134,7 +137,13 @@ static void rowDraw(Row row) {
     switch (row) {
     case ROW_BACK:       rowLabelDraw(ROW_BACK, "<"); break;
     case ROW_SAVING:     valueRowDraw(ROW_SAVING, "power saving", powerSaving() ? "on" : "off"); break;
-    case ROW_BRIGHTNESS: brightnessRowDraw(); break;
+    case ROW_BRIGHTNESS: barRowDraw(ROW_BRIGHTNESS, "brightness", brightnessLevel()); break;
+    case ROW_LED:        barRowDraw(ROW_LED, "led", ledLevel()); break;
+    case ROW_LED_COLOR: {
+        uint32_t rgb = ledColorRgb();
+        valueRowDraw(ROW_LED_COLOR, "led color", ledColorLabel(), M5Cardputer.Display.color565(rgb >> 16, rgb >> 8, rgb));
+        break;
+    }
     case ROW_SLEEP:      valueRowDraw(ROW_SLEEP, "sleep", sleepLabel()); break;
     case ROW_DEEP_SLEEP: valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel()); break;
     case ROW_TIME:       timeRowDraw(); break;
@@ -188,6 +197,14 @@ static bool valueStep(int dir) {
         before = brightnessLevel();
         brightnessSet(before + dir);
         return brightnessLevel() != before;
+    case ROW_LED:
+        before = ledLevel();
+        ledSet(before + dir);
+        return ledLevel() != before;
+    case ROW_LED_COLOR:
+        before = ledColorLevel();
+        ledColorSet(before + dir);
+        return ledColorLevel() != before;
     case ROW_SLEEP:
         before = sleepLevel();
         sleepSet(before + dir);
