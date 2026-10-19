@@ -15,6 +15,7 @@ struct Page {
     void (*draw)();                                       // paints the whole area between the status bar and the page bar
     bool (*handleKey)(const Keyboard_Class::KeysState &); // returns true if the page needs a redraw
     bool (*handleButton)();                                // BtnGO while the page is open (optional, left out = nullptr); returns true if the page needs a redraw
+    bool (*update)();                                      // every loop() while the page is open, for things that happen without a key (optional, left out = nullptr); returns true if the page needs a redraw
 };
 
 // The page registered for this digit, or nullptr (the caller falls back to the empty main screen).

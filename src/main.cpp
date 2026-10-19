@@ -8,20 +8,24 @@
 #include "core/power.h"
 #include "core/settings.h"
 #include "core/status_bar.h"
+#include "core/text_input.h"
+#include "core/wifi.h"
+#include "core/wifi_popup.h"
 
-// Draws the open page, or the main screen with the page bar.
+// Draws the open page, or the main screen with the page bar, and the Wi-Fi popup on top if it is open.
 static void pageDraw() {
     if (const Page *page = pageOpened()) {
         page->draw();
-        return;
-    }
-    const Page *page = pageFor(pageBarSelectedLabel());
-    if (page) {
-        mainScreenDraw(page->name, page->description);
     } else {
-        mainScreenDraw(nullptr, nullptr);
+        const Page *selected = pageFor(pageBarSelectedLabel());
+        if (selected) {
+            mainScreenDraw(selected->name, selected->description);
+        } else {
+            mainScreenDraw(nullptr, nullptr);
+        }
+        pageBarDraw();
     }
-    pageBarDraw();
+    if (wifiPopupIsOpen()) wifiPopupDraw();
 }
 
 void setup() {
@@ -33,6 +37,8 @@ void setup() {
     if (!powerWokeFromSleep()) playBootAnimation();
     setCpuFrequencyMhz(80); // plenty for the UI, and the chip draws less (after the animation, which decodes faster at full speed)
 
+    wifiBegin();
+
     statusBarDraw();
     pageDraw();
     powerActivity();
@@ -41,8 +47,10 @@ void setup() {
 void loop() {
     M5Cardputer.update();
     statusBarUpdate();
+    clockSyncUpdate();
 
     bool keyChanged = M5Cardputer.Keyboard.isChange(); // stateful: call once per loop
+    textInputUpdate(keyChanged);
     if (keyChanged || M5Cardputer.BtnA.isPressed()) powerActivity();
     if (powerUpdate()) { // woke from sleep: the screen needs repainting before the backlight is back
         statusBarDraw();
@@ -52,15 +60,26 @@ void loop() {
     bool keyPressed = keyChanged && M5Cardputer.Keyboard.isPressed();
     bool redraw = false;
 
-    if (const Page *page = pageOpened()) {
+    if (wifiPopupIsOpen()) { // takes over the keys, whatever it was opened from
+        bool changed = keyPressed && wifiPopupHandleKey(M5Cardputer.Keyboard.keysState());
+        if (M5Cardputer.BtnA.wasPressed()) changed |= wifiPopupHandleButton();
+        changed |= wifiPopupUpdate();
+        if (changed && wifiPopupIsOpen()) wifiPopupDraw(); // only the popup changed
+        else redraw = changed;                             // it closed: the screen under it needs repainting
+    } else if (const Page *page = pageOpened()) {
         if (keyPressed) redraw = page->handleKey(M5Cardputer.Keyboard.keysState());
         if (page->handleButton && M5Cardputer.BtnA.wasPressed()) redraw |= page->handleButton();
+        if (page->update) redraw |= page->update();
     } else {
         bool open = M5Cardputer.BtnA.wasPressed(); // BtnGO
         if (keyPressed) {
             auto keys = M5Cardputer.Keyboard.keysState();
             for (char c : keys.word) {
                 redraw |= pageBarHandleKey(c);
+                if (c == '-' && !keys.fn) { // shortcut to the Wi-Fi networks
+                    wifiPopupOpen();
+                    redraw = true;
+                }
             }
             open |= keys.enter;
         }

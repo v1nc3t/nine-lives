@@ -29,3 +29,7 @@ int timezoneLevel();
 void timezoneSet(int level);      // clamps and saves
 const char *timezoneLabel();      // e.g. "UTC", "UTC+2", "UTC+5:30"
 int timezoneMinutes();            // offset from UTC, negative west of it
+
+// Wi-Fi radio on or off (see wifi.h for switching it; this is only what is saved). Off by default.
+bool wifiOn();
+void wifiOnSet(bool on); // saves

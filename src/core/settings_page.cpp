@@ -3,10 +3,14 @@
 #include "clock.h"
 #include "page.h"
 #include "settings.h"
+#include "wifi.h"
+#include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_TIME, ROW_TIMEZONE, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_TIME, ROW_TIMEZONE, ROW_WIFI, ROW_CONNECT, ROW_COUNT };
 
 static int selected = ROW_BACK;
+static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
+static char drawnNetwork[33] = ""; // network name on the connect row right now
 
 static constexpr int BAR_SEGMENTS = BRIGHTNESS_MAX;
 static constexpr int BAR_SEGMENT_W = 10;
@@ -24,7 +28,8 @@ static int timeDigits[4];
 static int timeCursor;
 static bool popupOnly = false; // only the popup changed since the last draw: repaint just it, so nothing flickers
 
-static int rowY(int row) { return STATUS_BAR_H + row * PAGE_ROW_H; }
+static int visibleRows() { return (M5Cardputer.Display.height() - STATUS_BAR_H) / PAGE_ROW_H; }
+static int rowY(int row) { return STATUS_BAR_H + (row - top) * PAGE_ROW_H; }
 
 static void rowLabelDraw(Row row, const char *label) {
     auto &lcd = M5Cardputer.Display;
@@ -66,6 +71,20 @@ static void timeRowDraw() {
     auto &lcd = M5Cardputer.Display;
     lcd.setTextDatum(middle_right);
     lcd.drawString(clockText(), lcd.width() - 8, rowY(ROW_TIME) + PAGE_ROW_H / 2);
+}
+
+static void wifiRowDraw() { valueRowDraw(ROW_WIFI, "wifi", wifiEnabled() ? "on" : "off"); }
+
+static void connectRowDraw() {
+    rowLabelDraw(ROW_CONNECT, "connect");
+    auto &lcd = M5Cardputer.Display;
+    strcpy(drawnNetwork, wifiSsid());
+    char name[16];
+    if (drawnNetwork[0] == 0) strcpy(name, "not connected");
+    else if (strlen(drawnNetwork) <= 14) strcpy(name, drawnNetwork);
+    else snprintf(name, sizeof(name), "%.12s..", drawnNetwork);
+    lcd.setTextDatum(middle_right);
+    lcd.drawString(name, lcd.width() - 8, rowY(ROW_CONNECT) + PAGE_ROW_H / 2);
 }
 
 static int timeHours() { return timeDigits[0] * 10 + timeDigits[1]; }
@@ -111,21 +130,46 @@ static void timePopupDraw() {
     lcd.fillRect(cx, cy + 14, slotW, 2, TFT_GREEN);
 }
 
+static void rowDraw(Row row) {
+    switch (row) {
+    case ROW_BACK:       rowLabelDraw(ROW_BACK, "<"); break;
+    case ROW_BRIGHTNESS: brightnessRowDraw(); break;
+    case ROW_SLEEP:      valueRowDraw(ROW_SLEEP, "sleep", sleepLabel()); break;
+    case ROW_DEEP_SLEEP: valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel()); break;
+    case ROW_TIME:       timeRowDraw(); break;
+    case ROW_TIMEZONE:   valueRowDraw(ROW_TIMEZONE, "time zone", timezoneLabel()); break;
+    case ROW_WIFI:       wifiRowDraw(); break;
+    case ROW_CONNECT:    connectRowDraw(); break;
+    case ROW_COUNT:      break;
+    }
+}
+
+// Thin bar on the right edge showing which part of the list is on screen
+static void scrollBarDraw() {
+    auto &lcd = M5Cardputer.Display;
+    int trackY = STATUS_BAR_H + 2;
+    int trackH = lcd.height() - STATUS_BAR_H - 4;
+    int thumbH = trackH * visibleRows() / ROW_COUNT;
+    int thumbY = trackY + (trackH - thumbH) * top / (ROW_COUNT - visibleRows());
+    lcd.fillRect(lcd.width() - 3, trackY, 2, trackH, TFT_DARKGREY);
+    lcd.fillRect(lcd.width() - 3, thumbY, 2, thumbH, TFT_GREEN);
+}
+
 void settingsPageDraw() {
     if (timeEditing && popupOnly) {
         popupOnly = false;
         timePopupDraw();
         return;
     }
-    pageHeaderDraw();
-    brightnessRowDraw();
-    valueRowDraw(ROW_SLEEP, "sleep", sleepLabel());
-    valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel());
-    timeRowDraw();
-    valueRowDraw(ROW_TIMEZONE, "time zone", timezoneLabel());
+    if (selected < top) top = selected;
+    if (selected >= top + visibleRows()) top = selected - visibleRows() + 1;
+
+    pageFrameDraw();
+    for (int row = top; row < ROW_COUNT && row < top + visibleRows(); row++) rowDraw((Row)row);
+    if (ROW_COUNT > visibleRows()) scrollBarDraw();
 
     // Box around the selected row
-    M5Cardputer.Display.drawRect(3, rowY(selected) + 1, M5Cardputer.Display.width() - 6, PAGE_ROW_H - 2, TFT_GREEN);
+    M5Cardputer.Display.drawRect(3, rowY(selected) + 1, M5Cardputer.Display.width() - 8, PAGE_ROW_H - 2, TFT_GREEN);
 
     if (timeEditing) timePopupDraw();
 }
@@ -150,6 +194,9 @@ static bool valueStep(int dir) {
         before = timezoneLevel();
         timezoneSet(before + dir);
         return timezoneLevel() != before;
+    case ROW_WIFI:
+        wifiSetEnabled(!wifiEnabled()); // either arrow flips it
+        return true;
     default:
         return false;
     }
@@ -195,12 +242,30 @@ bool settingsPageHandleButton() {
     return true;
 }
 
+bool settingsPageUpdate() {
+    static uint32_t last = 0;
+    // The connect row shows the joined network, which can change on its own (a rejoin after boot, a lost signal)
+    if (millis() - last < 500) return false;
+    last = millis();
+    return strcmp(wifiSsid(), drawnNetwork) != 0;
+}
+
 bool settingsPageHandleKey(const Keyboard_Class::KeysState &keys) {
     if (timeEditing) return timeEditHandleKey(keys);
 
     // Enter on the time row opens the popup
     if (selected == ROW_TIME && keys.enter) {
         timeEditOpen();
+        return true;
+    }
+
+    // Enter on the wifi row flips it, on the connect row it opens the popup
+    if (selected == ROW_WIFI && keys.enter) {
+        wifiSetEnabled(!wifiEnabled());
+        return true;
+    }
+    if (selected == ROW_CONNECT && keys.enter) {
+        wifiPopupOpen();
         return true;
     }
 

@@ -8,7 +8,7 @@ static bool blankPageHandleKey(const Keyboard_Class::KeysState &keys) { return p
 
 // To build a page: write draw/handleKey for it and swap them in for the blank ones.
 static const Page PAGES[] = {
-    {'0', "groom", "settings", settingsPageDraw, settingsPageHandleKey, settingsPageHandleButton},
+    {'0', "groom", "settings", settingsPageDraw, settingsPageHandleKey, settingsPageHandleButton, settingsPageUpdate},
     {'1', "hoard", "vault", blankPageDraw, blankPageHandleKey},
     {'2', "whiskers", "2FA", blankPageDraw, blankPageHandleKey},
     {'3', "scratchpad", "notes", blankPageDraw, blankPageHandleKey},

@@ -21,6 +21,7 @@ static int brightness = BRIGHTNESS_DEFAULT;
 static int sleepStep = SLEEP_DEFAULT;
 static int deepSleepStep = DEEP_SLEEP_DEFAULT;
 static int timezone = TIMEZONE_UTC;
+static bool wifi = false;
 
 static void brightnessApply() {
     // Squared so the low steps are really dim (step 1 is 2/255) while the top step is still full
@@ -41,6 +42,7 @@ void settingsLoad() {
     sleepStep = constrain((int)prefs.getUChar("sleep", SLEEP_DEFAULT), 0, TIMEOUT_COUNT - 1);
     deepSleepStep = constrain((int)prefs.getUChar("deepsleep", DEEP_SLEEP_DEFAULT), sleepStep, TIMEOUT_COUNT - 1);
     timezone = constrain((int)prefs.getUChar("timezone", TIMEZONE_UTC), 0, TIMEZONE_STEPS - 1);
+    wifi = prefs.getUChar("wifi", 0) != 0;
     prefs.end();
     brightnessApply();
 }
@@ -97,4 +99,12 @@ const char *timezoneLabel() {
     else if (abs % 60 == 0) snprintf(label, sizeof(label), "UTC%c%d", minutes < 0 ? '-' : '+', abs / 60);
     else snprintf(label, sizeof(label), "UTC%c%d:%02d", minutes < 0 ? '-' : '+', abs / 60, abs % 60);
     return label;
+}
+
+bool wifiOn() { return wifi; }
+
+void wifiOnSet(bool on) {
+    if (on == wifi) return;
+    wifi = on;
+    save("wifi", wifi);
 }

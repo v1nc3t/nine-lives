@@ -5,6 +5,7 @@
 
 #include "clock.h"
 #include "settings.h"
+#include "wifi.h"
 
 static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_0; // BtnGO, pulled up, low when pressed
 static constexpr uint32_t SLEEP_POLL_MS = 50;      // how often sleep looks for a key
@@ -26,6 +27,7 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
     lcd.waitDisplay();
     M5Cardputer.Speaker.end();
     M5Cardputer.Mic.end();
+    wifiRadioOff();
 
     esp_sleep_enable_ext0_wakeup(WAKE_PIN, 0);
     esp_deep_sleep_start();
@@ -37,7 +39,7 @@ static void sleepNow() {
     auto &lcd = M5Cardputer.Display;
     uint8_t brightness = lcd.getBrightness();
     lcd.setBrightness(SLEEP_BRIGHTNESS);
-    setCpuFrequencyMhz(SLEEP_CPU_MHZ);
+    if (!wifiEnabled()) setCpuFrequencyMhz(SLEEP_CPU_MHZ); // the radio needs the full 80 MHz to stay connected
 
     lcd.fillScreen(TFT_BLACK);
     lcd.setTextDatum(middle_center);

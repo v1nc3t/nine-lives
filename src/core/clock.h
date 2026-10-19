@@ -1,10 +1,14 @@
 #pragma once
 
 // Wall clock. The RTC chip (or, without one, the ESP32 system clock) keeps UTC; the time zone from settings is added when showing it.
-// Until Wi-Fi or phone sync exists (see PLAN.md) the time is set by hand in settings; a stale RTC is set to the firmware's build time.
+// The time is set by hand in settings, or by itself over Wi-Fi (NTP) whenever the device is connected; a stale RTC is set to the firmware's build time.
 
 // Call once in setup() after M5Cardputer.begin().
 void clockBegin();
+
+// Call every loop(): while Wi-Fi is connected, fetches the time from the internet (once on connecting, then the network time
+// service repeats it every hour) and sets the clock. The time zone from settings is untouched.
+void clockSyncUpdate();
 
 // Local time as "HH:MM". Returns a pointer to a static buffer.
 const char *clockText();

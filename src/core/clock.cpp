@@ -1,10 +1,12 @@
 #include "clock.h"
 
 #include <M5Cardputer.h>
+#include <esp_sntp.h>
 #include <sys/time.h>
 #include <time.h>
 
 #include "settings.h"
+#include "wifi.h"
 
 #ifndef BUILD_UTC
 #define BUILD_UTC 0
@@ -41,6 +43,26 @@ static void utcSet(time_t seconds) {
 
 void clockBegin() {
     if (utcNow() < (time_t)BUILD_UTC) utcSet(BUILD_UTC);
+}
+
+static volatile bool synced = false; // set by the network time service's thread, handled in clockSyncUpdate()
+static bool syncing = false;
+
+void clockSyncUpdate() {
+    bool connected = wifiConnected();
+    if (connected && !syncing) {
+        sntp_set_time_sync_notification_cb([](timeval *) { synced = true; });
+        configTime(0, 0, "pool.ntp.org", "time.google.com"); // UTC: the time zone is added when showing it
+        syncing = true;
+    } else if (!connected && syncing) {
+        esp_sntp_stop();
+        syncing = false;
+    }
+
+    if (synced) { // the system clock now has the network time; the RTC chip, if there is one, is what is read, so copy it there
+        synced = false;
+        if (M5.Rtc.isEnabled()) utcSet(time(nullptr));
+    }
 }
 
 int clockLocalMinutes() {
