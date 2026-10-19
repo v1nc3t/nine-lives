@@ -3,6 +3,7 @@
 #include <M5Cardputer.h>
 
 #include "clock.h"
+#include "settings.h"
 #include "wifi.h"
 
 static constexpr uint32_t CHECK_MS = 1000;
@@ -40,6 +41,9 @@ static bool isLow(int level) {
     return level <= LOW_LEVEL && M5Cardputer.Power.isCharging() != m5::Power_Class::is_charging;
 }
 
+// The clock as shown: nothing while power saving
+static const char *shownClock() { return powerSaving() ? "" : clockText(); }
+
 static void draw(int level, bool low) {
     auto &lcd = M5Cardputer.Display;
     int w = lcd.width();
@@ -48,8 +52,8 @@ static void draw(int level, bool low) {
     lcd.setTextDatum(middle_left);
     lcd.setTextSize(1.2);
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-    lcd.drawString(clockText(), 4, STATUS_BAR_H / 2);
-    strcpy(drawnClock, clockText());
+    lcd.drawString(shownClock(), 4, STATUS_BAR_H / 2);
+    strcpy(drawnClock, shownClock());
 
     lcd.setTextDatum(middle_right);
     if (low) lcd.setTextColor(TFT_RED, TFT_BLACK);
@@ -74,5 +78,5 @@ void statusBarUpdate() {
 
     int level = M5Cardputer.Power.getBatteryLevel();
     bool low = isLow(level);
-    if (level != drawnLevel || low != drawnLow || wifiState() != drawnWifi || strcmp(clockText(), drawnClock) != 0) draw(level, low);
+    if (level != drawnLevel || low != drawnLow || wifiState() != drawnWifi || strcmp(shownClock(), drawnClock) != 0) draw(level, low);
 }

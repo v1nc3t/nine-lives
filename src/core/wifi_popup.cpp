@@ -1,10 +1,11 @@
 #include "wifi_popup.h"
 
 #include "page.h"
+#include "settings.h"
 #include "text_input.h"
 #include "wifi.h"
 
-enum State { CLOSED, SCANNING, LIST, PASSWORD, CONNECTING, FAILED };
+enum State { CLOSED, SAVING, SCANNING, LIST, PASSWORD, CONNECTING, FAILED };
 
 static constexpr int POPUP_X = 10;
 static constexpr int POPUP_Y = STATUS_BAR_H + 5;
@@ -33,6 +34,10 @@ static void close() {
 }
 
 void wifiPopupOpen() {
+    if (powerSaving()) { // Wi-Fi is off for good: only say so
+        state = SAVING;
+        return;
+    }
     wifiScanStart();
     selected = 0;
     top = 0;
@@ -154,6 +159,10 @@ void wifiPopupDraw() {
     lcd.drawRect(POPUP_X, POPUP_Y, POPUP_W, POPUP_H, TFT_GREEN);
 
     switch (state) {
+    case SAVING:
+        titleDraw("wifi");
+        messageDraw("power saving is on", TFT_WHITE, "esc: close");
+        break;
     case SCANNING:
         titleDraw("wifi");
         messageDraw("scanning...", TFT_WHITE, "esc: cancel");
@@ -244,6 +253,10 @@ static bool passwordHandleKey() {
 
 bool wifiPopupHandleKey(const Keyboard_Class::KeysState &keys) {
     switch (state) {
+    case SAVING:
+        if (!keys.del && !keys.enter && !pageEscPressed(keys)) return false;
+        close();
+        return true;
     case SCANNING:
         if (!keys.del && !pageEscPressed(keys)) return false;
         close();
@@ -268,6 +281,9 @@ bool wifiPopupHandleKey(const Keyboard_Class::KeysState &keys) {
 
 bool wifiPopupHandleButton() {
     switch (state) {
+    case SAVING:
+        close();
+        return true;
     case LIST:
         select();
         return true;

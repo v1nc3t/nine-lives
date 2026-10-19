@@ -9,8 +9,9 @@
 // Call once in setup() after settingsLoad(): starts the radio if the setting says so.
 void wifiBegin();
 
-bool wifiEnabled();
-void wifiSetEnabled(bool on); // switches the radio and saves
+bool wifiEnabled();            // the setting, and always false while power saving is on
+void wifiSetEnabled(bool on);  // switches the radio and saves; does nothing while power saving is on
+void wifiApply();              // makes the radio match wifiEnabled(), after power saving was switched
 bool wifiConnected();
 const char *wifiSsid();       // name of the joined network, or "" (static buffer)
 

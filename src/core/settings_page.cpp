@@ -6,7 +6,7 @@
 #include "wifi.h"
 #include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_TIME, ROW_TIMEZONE, ROW_WIFI, ROW_CONNECT, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_COUNT };
 
 static int selected = ROW_BACK;
 static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
@@ -133,6 +133,7 @@ static void timePopupDraw() {
 static void rowDraw(Row row) {
     switch (row) {
     case ROW_BACK:       rowLabelDraw(ROW_BACK, "<"); break;
+    case ROW_SAVING:     valueRowDraw(ROW_SAVING, "power saving", powerSaving() ? "on" : "off"); break;
     case ROW_BRIGHTNESS: brightnessRowDraw(); break;
     case ROW_SLEEP:      valueRowDraw(ROW_SLEEP, "sleep", sleepLabel()); break;
     case ROW_DEEP_SLEEP: valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel()); break;
@@ -175,6 +176,11 @@ void settingsPageDraw() {
 }
 
 // Moves the selected row's value one step; true if it changed.
+static void savingFlip() {
+    powerSavingSet(!powerSaving());
+    wifiApply();
+}
+
 static bool valueStep(int dir) {
     int before;
     switch (selected) {
@@ -196,6 +202,9 @@ static bool valueStep(int dir) {
         return timezoneLevel() != before;
     case ROW_WIFI:
         wifiSetEnabled(!wifiEnabled()); // either arrow flips it
+        return true;
+    case ROW_SAVING:
+        savingFlip();
         return true;
     default:
         return false;
@@ -262,6 +271,10 @@ bool settingsPageHandleKey(const Keyboard_Class::KeysState &keys) {
     // Enter on the wifi row flips it, on the connect row it opens the popup
     if (selected == ROW_WIFI && keys.enter) {
         wifiSetEnabled(!wifiEnabled());
+        return true;
+    }
+    if (selected == ROW_SAVING && keys.enter) {
+        savingFlip();
         return true;
     }
     if (selected == ROW_CONNECT && keys.enter) {

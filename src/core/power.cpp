@@ -28,6 +28,7 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
     M5Cardputer.Speaker.end();
     M5Cardputer.Mic.end();
     wifiRadioOff();
+    clockForget(); // the time isn't kept through deep sleep
 
     esp_sleep_enable_ext0_wakeup(WAKE_PIN, 0);
     esp_deep_sleep_start();
@@ -35,10 +36,12 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
 
 // Big clock on a dimmed screen and a slow CPU, checking for keys every few milliseconds. Returns on any key
 // or BtnGO, or never if the deep sleep time runs out first. The screen is left black; the caller repaints it.
+// With power saving on there is no clock: the screen is dark and the chip light-sleeps between key checks.
 static void sleepNow() {
     auto &lcd = M5Cardputer.Display;
     uint8_t brightness = lcd.getBrightness();
-    lcd.setBrightness(SLEEP_BRIGHTNESS);
+    bool dark = powerSaving();
+    lcd.setBrightness(dark ? 0 : SLEEP_BRIGHTNESS);
     if (!wifiEnabled()) setCpuFrequencyMhz(SLEEP_CPU_MHZ); // the radio needs the full 80 MHz to stay connected
 
     lcd.fillScreen(TFT_BLACK);
@@ -49,14 +52,19 @@ static void sleepNow() {
     uint32_t lastCheck = 0;
 
     for (;;) {
-        if (shown[0] == 0 || millis() - lastCheck >= SLEEP_CLOCK_CHECK_MS) {
+        if (!dark && (shown[0] == 0 || millis() - lastCheck >= SLEEP_CLOCK_CHECK_MS)) {
             lastCheck = millis();
             if (strcmp(clockText(), shown) != 0) {
                 strcpy(shown, clockText());
                 lcd.drawString(shown, lcd.width() / 2, lcd.height() / 2);
             }
         }
-        delay(SLEEP_POLL_MS); // not light sleep: it would stop the backlight's PWM and the clock needs the screen lit
+        if (dark) {
+            esp_sleep_enable_timer_wakeup(SLEEP_POLL_MS * 1000ULL);
+            esp_light_sleep_start();
+        } else {
+            delay(SLEEP_POLL_MS); // not light sleep: it would stop the backlight's PWM and the clock needs the screen lit
+        }
         M5Cardputer.update();
         if (M5Cardputer.Keyboard.isChange() || M5Cardputer.BtnA.isPressed()) break;
         if (idleFor(deepSleepSeconds())) deepSleepNow();

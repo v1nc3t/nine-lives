@@ -30,6 +30,11 @@ void timezoneSet(int level);      // clamps and saves
 const char *timezoneLabel();      // e.g. "UTC", "UTC+2", "UTC+5:30"
 int timezoneMinutes();            // offset from UTC, negative west of it
 
+// Power saving: Wi-Fi is off (and can't be switched on), the clock is hidden and not synced, and the idle sleep screen is dark
+// instead of showing the clock (see power.h). Off by default.
+bool powerSaving();
+void powerSavingSet(bool on); // saves; the caller applies it to the radio with wifiApply() (wifi.h)
+
 // Wi-Fi radio on or off (see wifi.h for switching it; this is only what is saved). Off by default.
 bool wifiOn();
 void wifiOnSet(bool on); // saves

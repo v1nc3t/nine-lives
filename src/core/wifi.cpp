@@ -109,10 +109,16 @@ void wifiRejoin() {
     WiFi.begin(known[0].ssid, known[0].password[0] ? known[0].password : nullptr);
 }
 
-bool wifiEnabled() { return wifiOn(); }
+bool wifiEnabled() { return wifiOn() && !powerSaving(); }
+
+void wifiApply() {
+    scanning = false;
+    if (wifiEnabled()) wifiBegin();
+    else WiFi.mode(WIFI_OFF);
+}
 
 void wifiSetEnabled(bool on) {
-    if (on == wifiEnabled()) return;
+    if (powerSaving() || on == wifiEnabled()) return;
     wifiOnSet(on);
     scanning = false;
     if (on) wifiBegin();

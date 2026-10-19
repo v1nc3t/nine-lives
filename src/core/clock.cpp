@@ -65,6 +65,8 @@ void clockSyncUpdate() {
     }
 }
 
+void clockForget() { utcSet(946684800); } // 2000-01-01, the earliest an RTC chip can hold
+
 int clockLocalMinutes() {
     time_t local = utcNow() + timezoneMinutes() * 60;
     return local % 86400 / 60;
