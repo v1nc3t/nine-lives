@@ -26,7 +26,15 @@ static void gifDrawLine(GIFDRAW *d) {
     }
 }
 
-// Plays the boot animation once and returns after BOOT_MS: cut off if longer, last frame held if shorter
+// True when a key (or the GO button) was pressed since the last call. Polls the inputs itself, as loop() is not running yet.
+static bool skipRequested() {
+    M5Cardputer.update();
+    bool keyPressed = M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed(); // stateful: call once per poll
+    return keyPressed || M5Cardputer.BtnA.wasPressed();
+}
+
+// Plays the boot animation once and returns after BOOT_MS: cut off if longer, last frame held if shorter.
+// Any key press ends it early.
 void playBootAnimation() {
     auto &lcd = M5Cardputer.Display;
     lcd.fillScreen(TFT_BLACK);
@@ -40,19 +48,26 @@ void playBootAnimation() {
     // M5GFX reads a uint16_t* as byte-swapped RGB565, so ask the decoder for big-endian colors
     gif.begin(GIF_PALETTE_RGB565_BE);
     uint32_t start = millis();
+    bool skipped = false;
     if (gif.open(const_cast<uint8_t *>(boot_gif_start), boot_gif_end - boot_gif_start, gifDrawLine)) {
         uint32_t next = start; // when the next frame is due; decode time counts towards the frame delay
         int delayMs = 0;
-        while (millis() - start < BOOT_MS) {
+        while (!skipped && millis() - start < BOOT_MS) {
             bool more = gif.playFrame(false, &delayMs);
             canvas.pushSprite(0, 0);
             if (!more) break;
             next += delayMs;
-            while (millis() < next && millis() - start < BOOT_MS) delay(1);
+            while (!skipped && millis() < next && millis() - start < BOOT_MS) {
+                skipped = skipRequested();
+                delay(1);
+            }
         }
         gif.close();
     }
     canvas.deleteSprite();
-    while (millis() - start < BOOT_MS) delay(10);
+    while (!skipped && millis() - start < BOOT_MS) {
+        skipped = skipRequested();
+        delay(10);
+    }
     lcd.fillScreen(TFT_BLACK);
 }
