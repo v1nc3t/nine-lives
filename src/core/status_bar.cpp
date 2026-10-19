@@ -2,9 +2,12 @@
 
 #include <M5Cardputer.h>
 
-static constexpr uint32_t CHECK_MS = 5000;
+#include "clock.h"
+
+static constexpr uint32_t CHECK_MS = 1000;
 static constexpr int LOW_LEVEL = 15; // percent; at or below this (and not charging) the level turns red
 
+static char drawnClock[6] = ""; // clock text shown right now
 static int drawnLevel = -1;   // battery level shown right now
 static bool drawnLow = false; // whether it was drawn as a warning
 
@@ -20,7 +23,8 @@ static void draw(int level, bool low) {
     lcd.setTextDatum(middle_left);
     lcd.setTextSize(1.2);
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-    lcd.drawString("nine lives", 4, STATUS_BAR_H / 2);
+    lcd.drawString(clockText(), 4, STATUS_BAR_H / 2);
+    strcpy(drawnClock, clockText());
 
     lcd.setTextDatum(middle_right);
     if (low) lcd.setTextColor(TFT_RED, TFT_BLACK);
@@ -41,5 +45,5 @@ void statusBarUpdate() {
 
     int level = M5Cardputer.Power.getBatteryLevel();
     bool low = isLow(level);
-    if (level != drawnLevel || low != drawnLow) draw(level, low);
+    if (level != drawnLevel || low != drawnLow || strcmp(clockText(), drawnClock) != 0) draw(level, low);
 }

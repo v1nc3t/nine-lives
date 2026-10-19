@@ -3,10 +3,13 @@
 #include <M5Cardputer.h>
 #include <esp_sleep.h>
 
+#include "clock.h"
 #include "settings.h"
 
 static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_0; // BtnGO, pulled up, low when pressed
-static constexpr uint32_t SLEEP_POLL_MS = 50;      // how often sleep wakes briefly to look for a key
+static constexpr uint32_t SLEEP_POLL_MS = 50;      // how often sleep looks for a key
+static constexpr uint32_t SLEEP_CLOCK_CHECK_MS = 1000;
+static constexpr uint8_t SLEEP_BRIGHTNESS = 5; // of 255; dim enough to read in the dark
 static constexpr uint32_t SLEEP_CPU_MHZ = 20;
 static constexpr uint32_t AWAKE_CPU_MHZ = 80;
 
@@ -28,26 +31,37 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
     esp_deep_sleep_start();
 }
 
-// Screen off, slow CPU, and the chip in light sleep between short key checks. Returns on any key or BtnGO,
-// or never if the deep sleep time runs out first.
+// Big clock on a dimmed screen and a slow CPU, checking for keys every few milliseconds. Returns on any key
+// or BtnGO, or never if the deep sleep time runs out first. The screen is left black; the caller repaints it.
 static void sleepNow() {
     auto &lcd = M5Cardputer.Display;
     uint8_t brightness = lcd.getBrightness();
-    lcd.setBrightness(0);
-    lcd.sleep();
-    lcd.waitDisplay();
+    lcd.setBrightness(SLEEP_BRIGHTNESS);
     setCpuFrequencyMhz(SLEEP_CPU_MHZ);
 
-    esp_sleep_enable_timer_wakeup(SLEEP_POLL_MS * 1000ULL);
+    lcd.fillScreen(TFT_BLACK);
+    lcd.setTextDatum(middle_center);
+    lcd.setTextSize(7);
+    lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+    char shown[6] = "";
+    uint32_t lastCheck = 0;
+
     for (;;) {
-        esp_light_sleep_start();
+        if (shown[0] == 0 || millis() - lastCheck >= SLEEP_CLOCK_CHECK_MS) {
+            lastCheck = millis();
+            if (strcmp(clockText(), shown) != 0) {
+                strcpy(shown, clockText());
+                lcd.drawString(shown, lcd.width() / 2, lcd.height() / 2);
+            }
+        }
+        delay(SLEEP_POLL_MS); // not light sleep: it would stop the backlight's PWM and the clock needs the screen lit
         M5Cardputer.update();
         if (M5Cardputer.Keyboard.isChange() || M5Cardputer.BtnA.isPressed()) break;
         if (idleFor(deepSleepSeconds())) deepSleepNow();
     }
 
     setCpuFrequencyMhz(AWAKE_CPU_MHZ);
-    lcd.wakeup();
+    lcd.fillScreen(TFT_BLACK);
     lcd.setBrightness(brightness);
     powerActivity();
 }

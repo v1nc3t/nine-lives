@@ -1,6 +1,7 @@
 #include <M5Cardputer.h>
 
 #include "core/boot.h"
+#include "core/clock.h"
 #include "core/main_screen.h"
 #include "core/page.h"
 #include "core/page_bar.h"
@@ -28,6 +29,7 @@ void setup() {
     M5Cardputer.begin(cfg, true);
     M5Cardputer.Display.setRotation(1);
     settingsLoad();
+    clockBegin();
     if (!powerWokeFromSleep()) playBootAnimation();
     setCpuFrequencyMhz(80); // plenty for the UI, and the chip draws less (after the animation, which decodes faster at full speed)
 
@@ -52,6 +54,7 @@ void loop() {
 
     if (const Page *page = pageOpened()) {
         if (keyPressed) redraw = page->handleKey(M5Cardputer.Keyboard.keysState());
+        if (page->handleButton && M5Cardputer.BtnA.wasPressed()) redraw |= page->handleButton();
     } else {
         bool open = M5Cardputer.BtnA.wasPressed(); // BtnGO
         if (keyPressed) {

@@ -14,6 +14,7 @@ struct Page {
     const char *description;                              // one short line, shown under the name on the main screen (max ~20 characters to fit)
     void (*draw)();                                       // paints the whole area between the status bar and the page bar
     bool (*handleKey)(const Keyboard_Class::KeysState &); // returns true if the page needs a redraw
+    bool (*handleButton)();                                // BtnGO while the page is open (optional, left out = nullptr); returns true if the page needs a redraw
 };
 
 // The page registered for this digit, or nullptr (the caller falls back to the empty main screen).
@@ -33,4 +34,5 @@ void pageFrameDraw(bool pageBarVisible = false);
 static constexpr int PAGE_ROW_H = 20;
 static constexpr int PAGE_CONTENT_Y = STATUS_BAR_H + PAGE_ROW_H;
 void pageHeaderDraw();
-bool pageHandleBack(const Keyboard_Class::KeysState &keys); // Enter or Backspace closes the page; true if it did
+bool pageEscPressed(const Keyboard_Class::KeysState &keys); // the ESC key (`)
+bool pageHandleBack(const Keyboard_Class::KeysState &keys); // Enter, Backspace or ESC closes the page; true if it did

@@ -7,6 +7,8 @@ static constexpr const char *NAMESPACE = "nine-lives";
 static constexpr int BRIGHTNESS_DEFAULT = 7;
 static constexpr int SLEEP_DEFAULT = 1;      // 30s
 static constexpr int DEEP_SLEEP_DEFAULT = 4; // 5m
+static constexpr int TIMEZONE_STEPS = 53;    // UTC-12:00 .. UTC+14:00 every 30 minutes
+static constexpr int TIMEZONE_UTC = 24;      // the step for UTC itself, and the default
 
 struct Timeout {
     const char *label;
@@ -18,6 +20,7 @@ static constexpr int TIMEOUT_COUNT = sizeof(TIMEOUTS) / sizeof(TIMEOUTS[0]);
 static int brightness = BRIGHTNESS_DEFAULT;
 static int sleepStep = SLEEP_DEFAULT;
 static int deepSleepStep = DEEP_SLEEP_DEFAULT;
+static int timezone = TIMEZONE_UTC;
 
 static void brightnessApply() {
     // Squared so the low steps are really dim (step 1 is 2/255) while the top step is still full
@@ -37,6 +40,7 @@ void settingsLoad() {
     brightness = constrain((int)prefs.getUChar("brightness", BRIGHTNESS_DEFAULT), BRIGHTNESS_MIN, BRIGHTNESS_MAX);
     sleepStep = constrain((int)prefs.getUChar("sleep", SLEEP_DEFAULT), 0, TIMEOUT_COUNT - 1);
     deepSleepStep = constrain((int)prefs.getUChar("deepsleep", DEEP_SLEEP_DEFAULT), sleepStep, TIMEOUT_COUNT - 1);
+    timezone = constrain((int)prefs.getUChar("timezone", TIMEZONE_UTC), 0, TIMEZONE_STEPS - 1);
     prefs.end();
     brightnessApply();
 }
@@ -74,3 +78,23 @@ int deepSleepLevel() { return deepSleepStep; }
 void deepSleepSet(int level) { timeoutSet(deepSleepStep, "deepsleep", max(level, sleepStep)); }
 const char *deepSleepLabel() { return TIMEOUTS[deepSleepStep].label; }
 unsigned deepSleepSeconds() { return TIMEOUTS[deepSleepStep].seconds; }
+
+int timezoneLevel() { return timezone; }
+int timezoneMinutes() { return (timezone - TIMEZONE_UTC) * 30; }
+
+void timezoneSet(int level) {
+    level = constrain(level, 0, TIMEZONE_STEPS - 1);
+    if (level == timezone) return;
+    timezone = level;
+    save("timezone", timezone);
+}
+
+const char *timezoneLabel() {
+    static char label[12];
+    int minutes = timezoneMinutes();
+    int abs = minutes < 0 ? -minutes : minutes;
+    if (minutes == 0) snprintf(label, sizeof(label), "UTC");
+    else if (abs % 60 == 0) snprintf(label, sizeof(label), "UTC%c%d", minutes < 0 ? '-' : '+', abs / 60);
+    else snprintf(label, sizeof(label), "UTC%c%d:%02d", minutes < 0 ? '-' : '+', abs / 60, abs % 60);
+    return label;
+}

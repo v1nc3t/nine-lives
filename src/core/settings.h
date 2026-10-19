@@ -23,3 +23,9 @@ int deepSleepLevel();
 void deepSleepSet(int level);
 const char *deepSleepLabel();
 unsigned deepSleepSeconds();
+
+// Time zone as an offset from UTC, in 30 minute steps from UTC-12:00 to UTC+14:00 (see clock.h).
+int timezoneLevel();
+void timezoneSet(int level);      // clamps and saves
+const char *timezoneLabel();      // e.g. "UTC", "UTC+2", "UTC+5:30"
+int timezoneMinutes();            // offset from UTC, negative west of it

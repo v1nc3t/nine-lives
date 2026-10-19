@@ -8,7 +8,7 @@ static bool blankPageHandleKey(const Keyboard_Class::KeysState &keys) { return p
 
 // To build a page: write draw/handleKey for it and swap them in for the blank ones.
 static const Page PAGES[] = {
-    {'0', "groom", "settings", settingsPageDraw, settingsPageHandleKey},
+    {'0', "groom", "settings", settingsPageDraw, settingsPageHandleKey, settingsPageHandleButton},
     {'1', "hoard", "vault", blankPageDraw, blankPageHandleKey},
     {'2', "whiskers", "2FA", blankPageDraw, blankPageHandleKey},
     {'3', "scratchpad", "notes", blankPageDraw, blankPageHandleKey},
@@ -52,8 +52,15 @@ void pageHeaderDraw() {
     lcd.drawString("<", 8, STATUS_BAR_H + PAGE_ROW_H / 2);
 }
 
+bool pageEscPressed(const Keyboard_Class::KeysState &keys) {
+    for (char c : keys.word) {
+        if (c == '`') return true;  // the ESC key
+    }
+    return false;
+}
+
 bool pageHandleBack(const Keyboard_Class::KeysState &keys) {
-    if (!keys.enter && !keys.del) return false;
+    if (!keys.enter && !keys.del && !pageEscPressed(keys)) return false;
     pageClose();
     return true;
 }
