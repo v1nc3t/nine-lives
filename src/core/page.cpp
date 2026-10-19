@@ -47,7 +47,7 @@ void pageHeaderDraw() {
 
     auto &lcd = M5Cardputer.Display;
     lcd.setTextDatum(middle_left);
-    lcd.setTextSize(2);
+    lcd.setTextSize(1.5);
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     lcd.drawString("<", 8, STATUS_BAR_H + PAGE_ROW_H / 2);
 }

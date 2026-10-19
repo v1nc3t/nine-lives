@@ -4,6 +4,7 @@
 #include "core/main_screen.h"
 #include "core/page.h"
 #include "core/page_bar.h"
+#include "core/power.h"
 #include "core/settings.h"
 #include "core/status_bar.h"
 
@@ -27,17 +28,23 @@ void setup() {
     M5Cardputer.begin(cfg, true);
     M5Cardputer.Display.setRotation(1);
     settingsLoad();
-    playBootAnimation();
+    if (!powerWokeFromSleep()) playBootAnimation();
+    setCpuFrequencyMhz(80); // plenty for the UI, and the chip draws less (after the animation, which decodes faster at full speed)
 
     statusBarDraw();
     pageDraw();
+    powerActivity();
 }
 
 void loop() {
     M5Cardputer.update();
     statusBarUpdate();
 
-    bool keyPressed = M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed();
+    bool keyChanged = M5Cardputer.Keyboard.isChange(); // stateful: call once per loop
+    if (keyChanged || M5Cardputer.BtnA.isPressed()) powerActivity();
+    powerUpdate();
+
+    bool keyPressed = keyChanged && M5Cardputer.Keyboard.isPressed();
     bool redraw = false;
 
     if (const Page *page = pageOpened()) {
@@ -60,4 +67,6 @@ void loop() {
     }
 
     if (redraw) pageDraw();
+
+    delay(10); // idle between polls instead of spinning the CPU at full speed
 }
