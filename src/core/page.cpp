@@ -43,6 +43,26 @@ void pageFrameDraw(bool pageBarVisible) {
     lcd.drawRect(0, STATUS_BAR_H, w, h, themeColor());
 }
 
+void pageFit(char *out, const char *text, int max) {
+    if ((int)strlen(text) <= max) {
+        strcpy(out, text);
+    } else {
+        memcpy(out, text, max - 2);
+        strcpy(out + max - 2, "..");
+    }
+}
+
+void pageScrollBarDraw(int top, int visible, int count) {
+    if (count <= visible) return;
+    auto &lcd = M5Cardputer.Display;
+    int trackY = STATUS_BAR_H + 2;
+    int trackH = lcd.height() - STATUS_BAR_H - 4;
+    int thumbH = trackH * visible / count;
+    int thumbY = trackY + (trackH - thumbH) * top / (count - visible);
+    lcd.fillRect(lcd.width() - 3, trackY, 2, trackH, TFT_DARKGREY);
+    lcd.fillRect(lcd.width() - 3, thumbY, 2, thumbH, themeColor());
+}
+
 void pageHeaderDraw() {
     pageFrameDraw();
 

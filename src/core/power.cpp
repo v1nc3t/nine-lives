@@ -30,6 +30,9 @@ static constexpr ParkedPin PARKED_PINS[] = {
     {GPIO_NUM_35, 0}, // ... data
     {GPIO_NUM_36, 0}, // ... clock
     {GPIO_NUM_37, 1}, // ... chip select (high: not selected)
+    {GPIO_NUM_12, 1}, // SD card chip select (high: not selected)
+    {GPIO_NUM_40, 0}, // ... clock
+    {GPIO_NUM_14, 0}, // ... data in
 };
 static constexpr uint32_t SLEEP_POLL_MS = 50;      // how often sleep looks for a key
 static constexpr uint32_t SLEEP_CLOCK_CHECK_MS = 1000;

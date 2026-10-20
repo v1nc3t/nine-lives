@@ -46,20 +46,10 @@ void wifiPopupOpen() {
     state = SCANNING;
 }
 
-// Cuts text to max characters, ending in ".." when it was longer
-static void fit(char *out, const char *text, int max) {
-    if ((int)strlen(text) <= max) {
-        strcpy(out, text);
-    } else {
-        memcpy(out, text, max - 2);
-        strcpy(out + max - 2, "..");
-    }
-}
-
 static void titleDraw(const char *text) {
     auto &lcd = M5Cardputer.Display;
     char title[TITLE_MAX_CHARS + 1];
-    fit(title, text, TITLE_MAX_CHARS);
+    pageFit(title, text, TITLE_MAX_CHARS);
     lcd.setTextDatum(middle_center);
     lcd.setTextSize(1.5);
     lcd.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -126,7 +116,7 @@ static void listDraw() {
         if (wifiPasswordSaved(net.ssid)) checkDraw(POPUP_X + 8, y + 4, color);
         else if (net.secured) padlockDraw(POPUP_X + 8, y + 4, color);
         char name[33];
-        fit(name, net.ssid, nameMax);
+        pageFit(name, net.ssid, nameMax);
         lcd.setTextColor(color, TFT_BLACK);
         lcd.drawString(name, nameX, y + LIST_ROW_H / 2);
         signalDraw(signalRight, y + LIST_ROW_H - 4, net.rssi, color);

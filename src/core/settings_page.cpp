@@ -3,11 +3,13 @@
 
 #include "clock.h"
 #include "page.h"
+#include "sd.h"
+#include "sd_browser.h"
 #include "settings.h"
 #include "wifi.h"
 #include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_SD, ROW_COUNT };
 
 static int selected = ROW_BACK;
 static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
@@ -75,6 +77,13 @@ static void timeRowDraw() {
     auto &lcd = M5Cardputer.Display;
     lcd.setTextDatum(middle_right);
     lcd.drawString(clockText(), lcd.width() - 8, rowY(ROW_TIME) + PAGE_ROW_H / 2);
+}
+
+static void sdRowDraw() {
+    rowLabelDraw(ROW_SD, "sd card");
+    auto &lcd = M5Cardputer.Display;
+    lcd.setTextDatum(middle_right);
+    lcd.drawString(sdLabel(), lcd.width() - 8, rowY(ROW_SD) + PAGE_ROW_H / 2);
 }
 
 static void wifiRowDraw() { valueRowDraw(ROW_WIFI, "wifi", wifiEnabled() ? "on" : "off"); }
@@ -146,6 +155,7 @@ static void rowDraw(Row row) {
         break;
     }
     case ROW_THEME:      valueRowDraw(ROW_THEME, "theme", themeLabel(), themeColor()); break;
+    case ROW_SD:         sdRowDraw(); break;
     case ROW_SLEEP:      valueRowDraw(ROW_SLEEP, "sleep", sleepLabel()); break;
     case ROW_DEEP_SLEEP: valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel()); break;
     case ROW_TIME:       timeRowDraw(); break;
@@ -154,17 +164,6 @@ static void rowDraw(Row row) {
     case ROW_CONNECT:    connectRowDraw(); break;
     case ROW_COUNT:      break;
     }
-}
-
-// Thin bar on the right edge showing which part of the list is on screen
-static void scrollBarDraw() {
-    auto &lcd = M5Cardputer.Display;
-    int trackY = STATUS_BAR_H + 2;
-    int trackH = lcd.height() - STATUS_BAR_H - 4;
-    int thumbH = trackH * visibleRows() / ROW_COUNT;
-    int thumbY = trackY + (trackH - thumbH) * top / (ROW_COUNT - visibleRows());
-    lcd.fillRect(lcd.width() - 3, trackY, 2, trackH, TFT_DARKGREY);
-    lcd.fillRect(lcd.width() - 3, thumbY, 2, thumbH, themeColor());
 }
 
 void settingsPageDraw() {
@@ -178,7 +177,7 @@ void settingsPageDraw() {
 
     pageFrameDraw();
     for (int row = top; row < ROW_COUNT && row < top + visibleRows(); row++) rowDraw((Row)row);
-    if (ROW_COUNT > visibleRows()) scrollBarDraw();
+    pageScrollBarDraw(top, visibleRows(), ROW_COUNT);
 
     // Box around the selected row
     M5Cardputer.Display.drawRect(3, rowY(selected) + 1, M5Cardputer.Display.width() - 8, PAGE_ROW_H - 2, themeColor());
@@ -301,6 +300,10 @@ bool settingsPageHandleKey(const Keyboard_Class::KeysState &keys) {
     }
     if (selected == ROW_CONNECT && keys.enter) {
         wifiPopupOpen();
+        return true;
+    }
+    if (selected == ROW_SD && keys.enter) {
+        sdBrowserOpen();
         return true;
     }
 

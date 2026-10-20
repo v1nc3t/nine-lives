@@ -6,6 +6,7 @@
 #include "core/page.h"
 #include "core/page_bar.h"
 #include "core/power.h"
+#include "core/sd.h"
 #include "core/settings.h"
 #include "core/status_bar.h"
 #include "core/text_input.h"
@@ -35,6 +36,7 @@ void setup() {
     M5Cardputer.Display.setRotation(1);
     settingsLoad();
     clockBegin();
+    sdBegin();
     if (!powerWokeFromSleep()) playBootAnimation();
     setCpuFrequencyMhz(80); // plenty for the UI, and the chip draws less (after the animation, which decodes faster at full speed)
 

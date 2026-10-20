@@ -29,6 +29,12 @@ const Page *pageOpened();
 // Clears the area and draws the frame in the theme color. The main screen passes true to leave room for the page bar.
 void pageFrameDraw(bool pageBarVisible = false);
 
+// Cuts text to max characters, ending in ".." when it was longer. out needs room for max + 1.
+void pageFit(char *out, const char *text, int max);
+
+// Thin bar on the right edge for a list of `count` rows, `visible` of them on screen from row `top`. Draws nothing if they all fit.
+void pageScrollBarDraw(int top, int visible, int count);
+
 // The structure every open page shares: frame, then a back row ('<') on the first row, then free content.
 // A page's draw() starts with pageHeaderDraw() and draws below PAGE_CONTENT_Y;
 // its handleKey() starts with `if (pageHandleBack(keys)) return true;`.
