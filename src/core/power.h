@@ -6,6 +6,14 @@
 //  - deep sleep: the chip powers down (almost no battery use). Only BtnGO (the button on the side) wakes it;
 //    a wake is a full reboot, so everything starts fresh (open page, unlocked keys) - but see powerWokeFromSleep().
 //    Wi-Fi is switched off and the time is thrown away first (the next start uses the build time until it is set or synced).
+//    The pins the firmware drives (backlight, speaker, keyboard, LED, screen) are parked at their idle levels and held there,
+//    because the chip would otherwise let them float and they could keep drawing current.
+
+// Call first thing in setup(), before anything drives a pin: lets go of the pins held through deep sleep.
+void powerBegin();
+
+// Holding BtnGO for five seconds deep-sleeps at once, whatever the timers say. Let go of it after the screen goes dark.
+// (The press that wakes the chip from deep sleep doesn't count; hold it again after letting go.)
 
 // Call on every key or button press.
 void powerActivity();

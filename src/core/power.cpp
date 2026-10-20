@@ -1,6 +1,7 @@
 #include "power.h"
 
 #include <M5Cardputer.h>
+#include <driver/gpio.h>
 #include <esp_sleep.h>
 
 #include "clock.h"
@@ -8,17 +9,56 @@
 #include "wifi.h"
 
 static constexpr gpio_num_t WAKE_PIN = GPIO_NUM_0; // BtnGO, pulled up, low when pressed
+
+// Every pin the firmware drives, with the idle level to park it at for deep sleep. The chip lets go of all of its pins
+// when it powers down, and a floating one can leave the backlight, speaker amp, keyboard decoder or screen drawing milliamps.
+struct ParkedPin {
+    gpio_num_t pin;
+    int level;
+};
+static constexpr ParkedPin PARKED_PINS[] = {
+    {GPIO_NUM_38, 0}, // backlight
+    {GPIO_NUM_21, 0}, // RGB LED data
+    {GPIO_NUM_8, 0},  // keyboard decoder address
+    {GPIO_NUM_9, 0},
+    {GPIO_NUM_11, 0},
+    {GPIO_NUM_41, 0}, // speaker amp: bit clock
+    {GPIO_NUM_42, 0}, // ... data
+    {GPIO_NUM_43, 0}, // ... word clock, also the microphone's clock
+    {GPIO_NUM_33, 1}, // screen reset (high: not in reset)
+    {GPIO_NUM_34, 0}, // ... data/command
+    {GPIO_NUM_35, 0}, // ... data
+    {GPIO_NUM_36, 0}, // ... clock
+    {GPIO_NUM_37, 1}, // ... chip select (high: not selected)
+};
 static constexpr uint32_t SLEEP_POLL_MS = 50;      // how often sleep looks for a key
 static constexpr uint32_t SLEEP_CLOCK_CHECK_MS = 1000;
 static constexpr uint8_t SLEEP_BRIGHTNESS = 5; // of 255; dim enough to read in the dark
 static constexpr uint32_t SLEEP_CPU_MHZ = 20;
 static constexpr uint32_t AWAKE_CPU_MHZ = 80;
+static constexpr uint32_t HOLD_SLEEP_MS = 7000; // holding BtnGO this long deep-sleeps at once
 
 static uint32_t lastActivity = 0;
+static bool goReleased = false; // a hold only counts once BtnGO has been let go, so the press that woke the chip doesn't send it back to sleep
 
 void powerActivity() { lastActivity = millis(); }
 
 static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastActivity >= seconds * 1000UL; }
+
+// Drives each pin to its idle level and holds it there through deep sleep.
+static void parkPins() {
+    for (const auto &parked : PARKED_PINS) {
+        gpio_set_direction(parked.pin, GPIO_MODE_OUTPUT);
+        gpio_set_level(parked.pin, parked.level);
+        gpio_hold_en(parked.pin);
+    }
+    gpio_deep_sleep_hold_en();
+}
+
+void powerBegin() {
+    gpio_deep_sleep_hold_dis();
+    for (const auto &parked : PARKED_PINS) gpio_hold_dis(parked.pin);
+}
 
 [[noreturn]] static void deepSleepNow() {
     auto &lcd = M5Cardputer.Display;
@@ -30,6 +70,10 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
     M5Cardputer.Mic.end();
     wifiRadioOff();
     clockForget(); // the time isn't kept through deep sleep
+    parkPins();
+
+    while (digitalRead(WAKE_PIN) == LOW) delay(10); // a hold of BtnGO brought us here: its low level would wake the chip at once
+    delay(50);                                      // ... and so would its contact bounce
 
     esp_sleep_enable_ext0_wakeup(WAKE_PIN, 0);
     esp_deep_sleep_start();
@@ -78,6 +122,9 @@ static void sleepNow() {
 }
 
 bool powerUpdate() {
+    auto &go = M5Cardputer.BtnA;
+    if (!go.isPressed()) goReleased = true;
+    else if (goReleased && go.pressedFor(HOLD_SLEEP_MS)) deepSleepNow();
     if (idleFor(deepSleepSeconds())) deepSleepNow();
     if (!idleFor(sleepSeconds())) return false;
     sleepNow();

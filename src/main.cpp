@@ -29,6 +29,7 @@ static void pageDraw() {
 }
 
 void setup() {
+    powerBegin(); // before anything drives a pin: the ones held through deep sleep are still held
     auto cfg = M5.config();
     M5Cardputer.begin(cfg, true);
     M5Cardputer.Display.setRotation(1);
