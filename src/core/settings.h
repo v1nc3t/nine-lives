@@ -66,6 +66,7 @@ void ledColorSet(int level);   // wraps round, applies to the LED and saves
 const char *ledColorLabel();   // e.g. "red"
 uint32_t ledColorRgb();        // 0xRRGGBB of the selected color, to tint the label
 void ledOff();                 // lights out without touching the saved setting (the LED keeps its last color through deep sleep)
+void ledOn();                  // back to the setting after ledOff()
 
 // Color theme, an index into the THEMES table (see theme.h). Switching it also switches the LED color to the theme's.
 int themeLevel();

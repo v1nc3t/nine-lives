@@ -8,4 +8,5 @@ int soundCount();
 const char *soundName(int index);
 
 void soundPlay(int index); // starts the sound, cutting off one that is still playing
-void soundUpdate();        // every loop(): plays the next note when it is time
+void soundUpdate();        // every loop(): plays the next note when it is time, and powers the speaker down a little after the last one
+void soundPowerDown();     // stops any sound and powers the speaker down now, for sleep (the next sound powers it up again)

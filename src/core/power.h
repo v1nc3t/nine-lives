@@ -2,14 +2,15 @@
 
 // Idle power saving, with two stages set in settings (both count from the last key or button press):
 //  - sleep: the screen shows the clock, big and dim, and the CPU slows down; any key or BtnGO wakes it and carries on where it was.
-//    With power saving on (see settings.h) the screen stays dark instead and the chip light-sleeps between key checks.
+//    With power saving on (see settings.h) the screen stays dark (its controller asleep too) and the chip light-sleeps between key checks.
+//    Either way the speaker and the LED are switched off until it wakes.
 //  - deep sleep: the chip powers down (almost no battery use). Only BtnGO (the button on the side) wakes it;
 //    a wake is a full reboot, so everything starts fresh (open page, unlocked keys) - but see powerWokeFromSleep().
 //    Wi-Fi is switched off and the time is thrown away first (the next start uses the build time until it is set or synced).
-//    The pins the firmware drives (backlight, speaker, keyboard, LED, screen) are parked at their idle levels and held there,
+//    The pins the firmware drives (backlight, speaker, keyboard, LED, screen, SD card, IR LED) are parked at their idle levels and held there,
 //    because the chip would otherwise let them float and they could keep drawing current.
 
-// Call first thing in setup(), before anything drives a pin: lets go of the pins held through deep sleep.
+// Call first thing in setup(), before anything drives a pin: lets go of the pins held through deep sleep, and switches the IR LED off.
 void powerBegin();
 
 // Holding BtnGO for five seconds deep-sleeps at once, whatever the timers say. Let go of it after the screen goes dark.

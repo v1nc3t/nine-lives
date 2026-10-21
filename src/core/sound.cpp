@@ -33,6 +33,10 @@ static const Sound SOUNDS[] = {
 };
 static constexpr int SOUND_COUNT = sizeof(SOUNDS) / sizeof(SOUNDS[0]);
 
+// The speaker library keeps its audio clock (and with it the amplifier) running forever once a sound has played,
+// so it is powered down after this long without a sound. Playing powers it up again by itself.
+static constexpr uint32_t SPEAKER_IDLE_MS = 3000;
+
 static const Sound *playing = nullptr; // nullptr when nothing is playing
 static int nextNote;
 static uint32_t nextAt; // when the note that is sounding now ends
@@ -48,8 +52,16 @@ void soundPlay(int index) {
     nextAt = millis();
 }
 
+void soundPowerDown() {
+    playing = nullptr;
+    if (M5Cardputer.Speaker.isRunning()) M5Cardputer.Speaker.end();
+}
+
 void soundUpdate() {
-    if (!playing) return;
+    if (!playing) {
+        if (M5Cardputer.Speaker.isRunning() && !M5Cardputer.Speaker.isPlaying() && millis() - nextAt >= SPEAKER_IDLE_MS) soundPowerDown();
+        return;
+    }
     if (!soundOn()) { // switched off while playing
         M5Cardputer.Speaker.stop();
         playing = nullptr;

@@ -127,6 +127,10 @@ void wifiSetEnabled(bool on) {
 
 void wifiRadioOff() { WiFi.mode(WIFI_OFF); }
 
+void wifiLowPower(bool on) {
+    if (wifiEnabled()) WiFi.setSleep(on ? WIFI_PS_MAX_MODEM : WIFI_PS_MIN_MODEM);
+}
+
 bool wifiConnected() { return wifiEnabled() && WiFi.status() == WL_CONNECTED; }
 
 const char *wifiSsid() {

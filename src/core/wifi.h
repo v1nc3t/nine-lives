@@ -18,6 +18,9 @@ const char *wifiSsid();       // name of the joined network, or "" (static buffe
 // Turns the radio off without touching the setting, for deep sleep.
 void wifiRadioOff();
 
+// While on, a connected radio wakes for fewer of the router's beacons: less power, slower replies. For sleep.
+void wifiLowPower(bool on);
+
 // Scan: wifiScanStart() turns Wi-Fi on if it was off. Poll wifiScanPoll() until it returns the number found (-1 while scanning).
 // The list has one entry per network name (the strongest of them), strongest first.
 struct WifiNetwork {

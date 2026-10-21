@@ -217,6 +217,7 @@ const char *ledColorLabel() { return LED_COLORS[ledColor].label; }
 uint32_t ledColorRgb() { return LED_COLORS[ledColor].rgb; }
 
 void ledOff() { neopixelWrite(LED_PIN, 0, 0, 0); }
+void ledOn() { ledApply(); }
 
 int themeLevel() { return theme; }
 
