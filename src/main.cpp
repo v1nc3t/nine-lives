@@ -8,6 +8,7 @@
 #include "core/power.h"
 #include "core/sd.h"
 #include "core/settings.h"
+#include "core/sound.h"
 #include "core/status_bar.h"
 #include "core/text_input.h"
 #include "core/wifi.h"
@@ -51,6 +52,7 @@ void loop() {
     M5Cardputer.update();
     statusBarUpdate();
     clockSyncUpdate();
+    soundUpdate();
 
     bool keyChanged = M5Cardputer.Keyboard.isChange(); // stateful: call once per loop
     textInputUpdate(keyChanged);
@@ -93,6 +95,9 @@ void loop() {
             }
         }
     }
+
+    // Click sound: after the key was handled, so switching sound on is heard and a newly picked sound plays at once
+    if (keyPressed || M5Cardputer.BtnA.wasPressed()) soundPlay(soundLevel());
 
     if (redraw) pageDraw();
 

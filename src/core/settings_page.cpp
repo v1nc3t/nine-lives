@@ -6,17 +6,18 @@
 #include "sd.h"
 #include "sd_browser.h"
 #include "settings.h"
+#include "sound.h"
 #include "wifi.h"
 #include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_SD, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_SOUND, ROW_PLAY_SOUND, ROW_VOLUME, ROW_SD, ROW_COUNT };
 
 static int selected = ROW_BACK;
 static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
 static char drawnNetwork[33] = ""; // network name on the connect row right now
 
 static constexpr int BAR_SEGMENTS = BRIGHTNESS_MAX; // the LED bar has the same number (LED_MAX)
-static_assert(LED_MAX == BRIGHTNESS_MAX, "both rows share one bar size");
+static_assert(LED_MAX == BRIGHTNESS_MAX && VOLUME_MAX == BRIGHTNESS_MAX, "all three rows share one bar size");
 static constexpr int BAR_SEGMENT_W = 10;
 static constexpr int BAR_SEGMENT_GAP = 2;
 static constexpr int BAR_W = BAR_SEGMENTS * (BAR_SEGMENT_W + BAR_SEGMENT_GAP) - BAR_SEGMENT_GAP;
@@ -155,7 +156,10 @@ static void rowDraw(Row row) {
         break;
     }
     case ROW_THEME:      valueRowDraw(ROW_THEME, "theme", themeLabel(), themeColor()); break;
-    case ROW_SD:         sdRowDraw(); break;
+    case ROW_SOUND:      valueRowDraw(ROW_SOUND, "sound", soundOn() ? "on" : "off"); break;
+    case ROW_PLAY_SOUND: valueRowDraw(ROW_PLAY_SOUND, "play sound", soundName(soundLevel())); break;
+    case ROW_VOLUME:     barRowDraw(ROW_VOLUME, "volume", volumeLevel()); break;
+    case ROW_SD:        sdRowDraw(); break;
     case ROW_SLEEP:      valueRowDraw(ROW_SLEEP, "sleep", sleepLabel()); break;
     case ROW_DEEP_SLEEP: valueRowDraw(ROW_DEEP_SLEEP, "deep sleep", deepSleepLabel()); break;
     case ROW_TIME:       timeRowDraw(); break;
@@ -209,6 +213,16 @@ static bool valueStep(int dir) {
     case ROW_THEME:
         themeSet(themeLevel() + dir);
         return true;
+    case ROW_SOUND:
+        soundOnSet(!soundOn()); // either arrow flips it
+        return true;
+    case ROW_PLAY_SOUND:
+        soundSet(soundLevel() + dir);
+        return true;
+    case ROW_VOLUME:
+        before = volumeLevel();
+        volumeSet(before + dir);
+        return volumeLevel() != before;
     case ROW_SLEEP:
         before = sleepLevel();
         sleepSet(before + dir);
@@ -296,6 +310,10 @@ bool settingsPageHandleKey(const Keyboard_Class::KeysState &keys) {
     }
     if (selected == ROW_SAVING && keys.enter) {
         savingFlip();
+        return true;
+    }
+    if (selected == ROW_SOUND && keys.enter) {
+        soundOnSet(!soundOn());
         return true;
     }
     if (selected == ROW_CONNECT && keys.enter) {

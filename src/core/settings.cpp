@@ -4,6 +4,7 @@
 #include <Preferences.h>
 #include <cstring>
 
+#include "sound.h"
 #include "theme.h"
 
 static constexpr const char *NAMESPACE = "nine-lives";
@@ -27,6 +28,7 @@ struct LedColor {
 static const LedColor LED_COLORS[] = {{"red", 0xFF0000},    {"orange", 0xFF6000}, {"yellow", 0xFFD000}, {"green", 0x00FF00}, {"cyan", 0x00FFFF},
                                       {"blue", 0x0000FF},   {"purple", 0x8000FF}, {"pink", 0xFF40A0},   {"white", 0xFFFFFF}};
 static constexpr int LED_COLOR_COUNT = sizeof(LED_COLORS) / sizeof(LED_COLORS[0]);
+static constexpr int VOLUME_DEFAULT = 5;
 static constexpr int LED_DEFAULT = 0;       // off
 static constexpr int LED_COLOR_DEFAULT = 4; // cyan
 
@@ -39,6 +41,14 @@ static int ledColor = LED_COLOR_DEFAULT;
 static int theme = 0;
 static bool wifi = false;
 static bool saving = false;
+static bool sound = true;
+static int soundChoice = 0;
+static int volume = VOLUME_DEFAULT;
+
+static void volumeApply() {
+    // Squared like the screen; step 5 comes to 63, close to the library's own default of 64
+    M5Cardputer.Speaker.setVolume(volume * volume * 255 / (VOLUME_MAX * VOLUME_MAX));
+}
 
 static void brightnessApply() {
     // Squared so the low steps are really dim (step 1 is 2/255) while the top step is still full
@@ -75,8 +85,12 @@ void settingsLoad() {
     theme = constrain((int)prefs.getUChar("theme", 0), 0, themeCount() - 1);
     wifi = prefs.getUChar("wifi", 0) != 0;
     saving = prefs.getUChar("saving", 0) != 0;
+    sound = prefs.getUChar("sound", 1) != 0;
+    soundChoice = constrain((int)prefs.getUChar("soundchoice", 0), 0, soundCount() - 1);
+    volume = constrain((int)prefs.getUChar("volume", VOLUME_DEFAULT), VOLUME_MIN, VOLUME_MAX);
     prefs.end();
     brightnessApply();
+    volumeApply();
     ledApply();
 }
 
@@ -140,6 +154,34 @@ void powerSavingSet(bool on) {
     if (on == saving) return;
     saving = on;
     save("saving", saving);
+}
+
+bool soundOn() { return sound; }
+
+void soundOnSet(bool on) {
+    if (on == sound) return;
+    sound = on;
+    save("sound", sound);
+}
+
+int soundLevel() { return soundChoice; }
+
+void soundSet(int level) {
+    int count = soundCount();
+    level = (level % count + count) % count;
+    if (level == soundChoice) return;
+    soundChoice = level;
+    save("soundchoice", soundChoice);
+}
+
+int volumeLevel() { return volume; }
+
+void volumeSet(int level) {
+    level = constrain(level, VOLUME_MIN, VOLUME_MAX);
+    if (level == volume) return;
+    volume = level;
+    volumeApply();
+    save("volume", volume);
 }
 
 bool wifiOn() { return wifi; }

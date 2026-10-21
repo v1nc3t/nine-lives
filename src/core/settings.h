@@ -37,6 +37,20 @@ int timezoneMinutes();            // offset from UTC, negative west of it
 bool powerSaving();
 void powerSavingSet(bool on); // saves; the caller applies it to the radio with wifiApply() (wifi.h)
 
+// Sound on or off (see sound.h). On by default.
+bool soundOn();
+void soundOnSet(bool on); // saves
+
+// The sound played on every key press and BtnGO while sound is on, an index into the SOUNDS table (see sound.h).
+int soundLevel();
+void soundSet(int level); // wraps round and saves
+
+// Speaker volume as a step from VOLUME_MIN (silent) to VOLUME_MAX.
+static constexpr int VOLUME_MIN = 0;
+static constexpr int VOLUME_MAX = 10;
+int volumeLevel();
+void volumeSet(int level); // clamps, applies to the speaker and saves
+
 // Wi-Fi radio on or off (see wifi.h for switching it; this is only what is saved). Off by default.
 bool wifiOn();
 void wifiOnSet(bool on); // saves
