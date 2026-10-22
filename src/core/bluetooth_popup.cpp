@@ -44,7 +44,7 @@ void bluetoothPopupDraw() {
     char pair[32];
     snprintf(pair, sizeof(pair), "pair with '%s'", BLUETOOTH_NAME);
     const char *detail = pair;
-    const char *hint = "esc: close";
+    const char *hint = "tab: off   esc: close";
     uint16_t color = TFT_WHITE;
     if (powerSaving()) {
         message = "power saving is on";
@@ -56,11 +56,11 @@ void bluetoothPopupDraw() {
     } else if (drawn == BLUETOOTH_PAIRED) {
         message = "not connected";
         detail = bluetoothDevice();
-        hint = "enter: forget   esc: close";
+        hint = "enter: forget  tab: off  esc: close";
     } else if (drawn == BLUETOOTH_CONNECTED) {
         message = "connected";
         detail = bluetoothDevice();
-        hint = "enter: forget   esc: close";
+        hint = "enter: forget  tab: off  esc: close";
         color = TFT_GREEN;
     }
 
@@ -83,6 +83,11 @@ static bool action() {
 }
 
 bool bluetoothPopupHandleKey(const Keyboard_Class::KeysState &keys) {
+    if (keys.tab && !powerSaving()) { // power saving: Bluetooth is off already
+        bluetoothSetEnabled(false);
+        close();
+        return true;
+    }
     if (keys.del || pageEscPressed(keys)) {
         close();
         return true;

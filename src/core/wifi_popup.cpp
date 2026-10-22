@@ -34,6 +34,11 @@ static void close() {
     wifiRejoin(); // a scan or a cancelled join may have dropped the connection
 }
 
+static void turnOff() {
+    wifiSetEnabled(false);
+    close();
+}
+
 void wifiPopupOpen() {
     if (powerSaving()) { // Wi-Fi is off for good: only say so
         state = SAVING;
@@ -95,9 +100,14 @@ static void listDraw() {
     auto &lcd = M5Cardputer.Display;
     int count = wifiScanPoll();
     if (count == 0) {
-        messageDraw("no networks found", TFT_WHITE, "enter: scan again   esc: close");
+        messageDraw("no networks found", TFT_WHITE, "enter: rescan  esc: close  tab: off");
         return;
     }
+
+    lcd.setTextDatum(middle_right);
+    lcd.setTextSize(1);
+    lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    lcd.drawString("tab: off", POPUP_X + POPUP_W - 8, POPUP_Y + 11); // beside the title, as the list leaves no room for a hint line
 
     lcd.setTextDatum(middle_left);
     lcd.setTextSize(1.5);
@@ -141,7 +151,7 @@ static void passwordDraw() {
     lcd.setTextDatum(middle_center);
     lcd.setTextSize(1);
     lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-    lcd.drawString("opt: show   fn+`: esc", POPUP_X + POPUP_W / 2, POPUP_Y + 80);
+    lcd.drawString("opt: show  fn+`: esc  tab: off", POPUP_X + POPUP_W / 2, POPUP_Y + 80);
 }
 
 void wifiPopupDraw() {
@@ -156,7 +166,7 @@ void wifiPopupDraw() {
         break;
     case SCANNING:
         titleDraw("wifi");
-        messageDraw("scanning...", TFT_WHITE, "esc: cancel");
+        messageDraw("scanning...", TFT_WHITE, "esc: cancel   tab: wifi off");
         break;
     case LIST:
         titleDraw("networks");
@@ -168,11 +178,11 @@ void wifiPopupDraw() {
         break;
     case CONNECTING:
         titleDraw(ssid);
-        messageDraw("connecting...", TFT_WHITE, "esc: cancel");
+        messageDraw("connecting...", TFT_WHITE, "esc: cancel   tab: wifi off");
         break;
     case FAILED:
         titleDraw(ssid);
-        messageDraw("couldn't connect", TFT_RED, "any key: try again");
+        messageDraw("couldn't connect", TFT_RED, "any key: retry   tab: wifi off");
         break;
     case CLOSED:
         break;
@@ -243,6 +253,10 @@ static bool passwordHandleKey() {
 }
 
 bool wifiPopupHandleKey(const Keyboard_Class::KeysState &keys) {
+    if (keys.tab && state != SAVING) { // SAVING: Wi-Fi is off already
+        turnOff();
+        return true;
+    }
     switch (state) {
     case SAVING:
         if (!keys.del && !keys.enter && !pageEscPressed(keys)) return false;

@@ -7,6 +7,7 @@
 //  - opening it switches Bluetooth on and opens the pairing window: pair "cardputer" from the phone's Bluetooth settings
 //  - it shows whether a phone is remembered and whether it is connected; the phone reconnects by itself later
 //  - Enter or BtnGO forgets the remembered phone (so another one can pair); Backspace or ESC closes
+//  - Tab turns Bluetooth off and closes
 void bluetoothPopupOpen();
 bool bluetoothPopupIsOpen();
 // The handlers return true if a redraw is needed; if the popup has just closed, that is the whole screen, not only the popup.

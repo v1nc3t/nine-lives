@@ -6,6 +6,7 @@
 // It sits on top of whatever is open and takes over the keys until it closes (main.cpp runs it):
 //  - scans, then lists the networks found, strongest first (a padlock marks the ones with a password)
 //  - up/down (fn + ; and .) move, Enter or BtnGO selects; Backspace or ESC closes
+//  - Tab, in any state, turns Wi-Fi off and closes
 //  - the title then becomes the selected network's name, with a password field (see text_input.h for the keys):
 //    Enter or BtnGO joins, fn + ` goes back to the list; open networks are joined straight away
 //  - closes by itself once joined; if joining fails any key goes back to the password

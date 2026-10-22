@@ -5,6 +5,7 @@
 #include "bluetooth.h"
 #include "clock.h"
 #include "settings.h"
+#include "theme.h"
 #include "wifi.h"
 
 static constexpr uint32_t CHECK_MS = 1000;
@@ -15,6 +16,7 @@ static int drawnLevel = -1;   // battery level shown right now
 static bool drawnLow = false; // whether it was drawn as a warning
 static int drawnWifi = -1;    // Wi-Fi icon shown right now (see wifiState)
 static int drawnBluetooth = -1; // Bluetooth icon shown right now (see bluetoothState)
+static uint16_t drawnAccent = 0; // theme color the icons were drawn with
 
 enum WifiState { WIFI_OFF_STATE, WIFI_SEARCHING, WIFI_JOINED };
 
@@ -23,10 +25,10 @@ static int wifiState() {
     return wifiConnected() ? WIFI_JOINED : WIFI_SEARCHING;
 }
 
-// 13 x 11 pixels: a dot and three arcs. Grey with a red slash when off, white while on but not joined, green when joined.
+// 13 x 11 pixels: a dot and three arcs. Grey with a red slash when off, white while on but not joined, the theme color when joined.
 static void wifiIconDraw(int x, int y, int state) {
     auto &lcd = M5Cardputer.Display;
-    uint16_t color = state == WIFI_JOINED ? TFT_GREEN : state == WIFI_SEARCHING ? TFT_WHITE : TFT_DARKGREY;
+    uint16_t color = state == WIFI_JOINED ? themeColor() : state == WIFI_SEARCHING ? TFT_WHITE : TFT_DARKGREY;
     int cx = x + 6;
     int cy = y + 10;
     lcd.fillCircle(cx, cy, 1, color);
@@ -46,10 +48,10 @@ static int bluetoothState() {
     return bluetoothStatus() == BLUETOOTH_CONNECTED ? BLUETOOTH_LINKED : BLUETOOTH_WAITING;
 }
 
-// 7 x 11 pixels: the Bluetooth rune. Same colors as the Wi-Fi icon: grey with a red slash when off, white while on, green when a phone is connected.
+// 7 x 11 pixels: the Bluetooth rune. Same colors as the Wi-Fi icon: grey with a red slash when off, white while on, the theme color when a phone is connected.
 static void bluetoothIconDraw(int x, int y, int state) {
     auto &lcd = M5Cardputer.Display;
-    uint16_t color = state == BLUETOOTH_LINKED ? TFT_GREEN : state == BLUETOOTH_WAITING ? TFT_WHITE : TFT_DARKGREY;
+    uint16_t color = state == BLUETOOTH_LINKED ? themeColor() : state == BLUETOOTH_WAITING ? TFT_WHITE : TFT_DARKGREY;
     lcd.drawLine(x + 3, y, x + 3, y + 10, color);
     lcd.drawLine(x + 3, y, x + 6, y + 3, color);
     lcd.drawLine(x + 6, y + 3, x, y + 8, color);
@@ -83,6 +85,7 @@ static void draw(int level, bool low) {
     wifiIconDraw(wifiX, 1, drawnWifi);
     drawnBluetooth = bluetoothState();
     bluetoothIconDraw(wifiX - 6 - 7, 1, drawnBluetooth);
+    drawnAccent = themeColor();
     drawnLevel = level;
     drawnLow = low;
 }
@@ -99,5 +102,5 @@ void statusBarUpdate() {
 
     int level = M5Cardputer.Power.getBatteryLevel();
     bool low = isLow(level);
-    if (level != drawnLevel || low != drawnLow || wifiState() != drawnWifi || bluetoothState() != drawnBluetooth || strcmp(clockText(), drawnClock) != 0) draw(level, low);
+    if (level != drawnLevel || low != drawnLow || wifiState() != drawnWifi || bluetoothState() != drawnBluetooth || themeColor() != drawnAccent || strcmp(clockText(), drawnClock) != 0) draw(level, low);
 }
