@@ -35,7 +35,7 @@ Each module is one issue, and the bullet points inside it are its tasks. Order: 
 [x] Main menu: list of modules, keyboard navigation, status bar (time, battery, Wi-Fi, Bluetooth, USB)
 [x] Keyboard input: key events, key repeat, shift/ctrl, text input box
 [x] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
-[x] SD card: mounted at boot, a missing or broken card is handled; settings has a file browser (folders, preview of `.txt` and `.md`)
+[x] SD card: mounted at boot, a missing or broken card is handled; settings has a file browser (folders, preview of `.txt`, `.md` and `.conf`, delete or rename a file or folder, delete after a confirm popup)
 [x] Config file: the settings are kept in `/nine-lives.conf` on the SD card, read at boot and written on every change
 [ ] SD card layout: folders for each module
 [x] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, Bluetooth pairing, time zone, cat animation and sound on/off

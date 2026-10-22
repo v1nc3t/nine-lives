@@ -15,5 +15,9 @@ bool sdMount();
 // Call after a read failed: the card was pulled or is broken. sdMount() looks again.
 void sdUnmount();
 
+// Deletes a file, or a folder with everything in it (the top folder "/" is refused). False if something could not be removed:
+// the rest of the folder may already be gone.
+bool sdRemove(const char *path);
+
 // "no card", or the card's size for the settings row, e.g. "29.7G" or "512M".
 const char *sdLabel();

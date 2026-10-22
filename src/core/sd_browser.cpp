@@ -6,12 +6,19 @@
 
 #include "page.h"
 #include "sd.h"
+#include "text_input.h"
 
 static constexpr int MAX_ENTRIES = 64; // shortcut: a folder shows its first 64 entries (a note row says so), page them in when a folder needs more
 static constexpr int NAME_LEN = 64;    // longer names are cut, and then can't be opened
 static constexpr int PATH_LEN = 128;   // deeper folders can't be entered
 
-// Preview popup: the same box as the Wi-Fi popup, text in the small 6 px font
+// List: the location bar under the status bar, then the back row (pinned, with the key hints), then the files, which scroll
+static constexpr int PATH_BAR_H = 14;
+static constexpr uint16_t PATH_BAR_COLOR = 0x2104; // dark grey
+static constexpr int HEADER_Y = STATUS_BAR_H + PATH_BAR_H;
+static constexpr int LIST_Y = HEADER_Y + PAGE_ROW_H;
+
+// Popups: the same box as the Wi-Fi popup, text in the small 6 px font
 static constexpr int POPUP_X = 10;
 static constexpr int POPUP_Y = STATUS_BAR_H + 5;
 static constexpr int POPUP_W = 220;
@@ -35,7 +42,14 @@ static bool more = false;   // the folder has more entries than MAX_ENTRIES
 static bool failed = false; // the card is missing or can't be read
 static char path[PATH_LEN] = "/";
 static int selected = 0; // row: 0 is the back row, then the entries
-static int top = 0;      // first row shown
+static int top = 1;      // first row shown under the back row
+
+// Delete and rename popups, over the list: delete asks first and shows that it works, rename takes the new name; both say when it did not work
+enum Ask { ASK_NONE, ASK_DELETE, ASK_DELETING, ASK_RENAME, ASK_FAILED };
+static Ask ask = ASK_NONE;
+static FileEntry target; // what the popup is about
+static TextField newName;
+static const char *failedText; // what ASK_FAILED says
 
 static bool previewing = false;
 static bool modalOnly = false; // only the preview changed since the last draw: repaint just it, so nothing flickers
@@ -47,7 +61,7 @@ static int scroll = 0; // first line shown
 
 static bool supported(const char *name) {
     const char *dot = strrchr(name, '.');
-    return dot && (!strcasecmp(dot, ".txt") || !strcasecmp(dot, ".md"));
+    return dot && (!strcasecmp(dot, ".txt") || !strcasecmp(dot, ".md") || !strcasecmp(dot, ".conf"));
 }
 
 // Folders first, then by name
@@ -72,7 +86,7 @@ static void listOpen(const char *dir) {
     count = 0;
     more = false;
     selected = 0;
-    top = 0;
+    top = 1;
     failed = !sdMount();
     if (failed) return;
 
@@ -180,43 +194,58 @@ static bool activate() {
 // Row after the entries, saying why the list ends or is empty (nullptr: none)
 static const char *noteText() { return more ? "more files not shown" : count == 0 ? "empty" : nullptr; }
 static int rowCount() { return 1 + count + (noteText() != nullptr); }
-static int visibleRows() { return (M5Cardputer.Display.height() - STATUS_BAR_H) / PAGE_ROW_H; }
-static int rowY(int row) { return STATUS_BAR_H + (row - top) * PAGE_ROW_H; }
+static int visibleRows() { return (M5Cardputer.Display.height() - LIST_Y) / PAGE_ROW_H; } // under the back row
+static int rowY(int row) { return row == 0 ? HEADER_Y : LIST_Y + (row - top) * PAGE_ROW_H; }
 
 static void listDraw() {
     auto &lcd = M5Cardputer.Display;
-    if (selected < top) top = selected;
-    if (selected >= top + visibleRows()) top = selected - visibleRows() + 1;
+    int rows = visibleRows();
+    if (selected >= 1) { // the back row stays put, the rows under it scroll
+        if (selected < top) top = selected;
+        if (selected >= top + rows) top = selected - rows + 1;
+    }
 
     pageFrameDraw();
+
+    // Location bar: the end of the path if it is too long
+    lcd.fillRect(1, STATUS_BAR_H + 1, lcd.width() - 2, PATH_BAR_H - 1, PATH_BAR_COLOR);
+    lcd.setTextSize(1);
+    int pathMax = (lcd.width() - 16) / lcd.textWidth("0");
+    int pathLen = strlen(path);
+    char where[PATH_LEN + 3];
+    snprintf(where, sizeof(where), "%s%s", pathLen > pathMax ? ".." : "", path + (pathLen > pathMax ? pathLen - (pathMax - 2) : 0));
+    lcd.setTextDatum(middle_left);
+    lcd.setTextColor(TFT_WHITE, PATH_BAR_COLOR);
+    lcd.drawString(where, 8, STATUS_BAR_H + PATH_BAR_H / 2 + 1);
+
+    // Back row, with the keys that work on the selected file or folder
+    lcd.setTextSize(1.5);
+    lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+    lcd.drawString("<", 8, HEADER_Y + PAGE_ROW_H / 2);
+    lcd.setTextSize(1);
+    lcd.setTextDatum(middle_right);
+    lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    lcd.drawString("d: delete  r: rename", lcd.width() - 8, HEADER_Y + PAGE_ROW_H / 2);
+
     lcd.setTextSize(1.5);
     int nameMax = (lcd.width() - 16) / lcd.textWidth("0");
-    for (int row = top; row < rowCount() && row < top + visibleRows(); row++) {
+    for (int row = top; row < rowCount() && row < top + rows; row++) {
         int y = rowY(row) + PAGE_ROW_H / 2;
         char full[NAME_LEN + 2];
         char shown[NAME_LEN + 2];
-        if (row == 0) {
-            lcd.setTextDatum(middle_left);
-            lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-            lcd.drawString("<", 8, y);
-            pageFit(shown, path, nameMax - 2);
-            lcd.setTextDatum(middle_right);
-            lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-            lcd.drawString(shown, lcd.width() - 8, y);
-        } else if (row > count) {
-            lcd.setTextDatum(middle_left);
+        lcd.setTextDatum(middle_left);
+        if (row > count) {
             lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
             lcd.drawString(noteText(), 8, y);
         } else {
             const FileEntry &entry = entries[row - 1];
             snprintf(full, sizeof(full), entry.dir ? "%s/" : "%s", entry.name);
             pageFit(shown, full, nameMax);
-            lcd.setTextDatum(middle_left);
             lcd.setTextColor(entry.dir ? themeColor() : supported(entry.name) ? TFT_WHITE : TFT_DARKGREY, TFT_BLACK);
             lcd.drawString(shown, 8, y);
         }
     }
-    pageScrollBarDraw(top, visibleRows(), rowCount());
+    pageScrollBarDraw(top - 1, rows, rowCount() - 1);
 
     // Box around the selected row
     lcd.drawRect(3, rowY(selected) + 1, lcd.width() - 8, PAGE_ROW_H - 2, themeColor());
@@ -261,15 +290,123 @@ static void previewDraw() {
     lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
 }
 
+static void askDraw() {
+    auto &lcd = M5Cardputer.Display;
+    int x = POPUP_X + POPUP_W / 2;
+    lcd.fillRect(POPUP_X, POPUP_Y, POPUP_W, POPUP_H, TFT_BLACK);
+    lcd.drawRect(POPUP_X, POPUP_Y, POPUP_W, POPUP_H, themeColor());
+
+    lcd.setTextDatum(middle_center);
+    lcd.setTextSize(1.5);
+    lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+    lcd.drawString(ask == ASK_DELETE ? "delete?" : ask == ASK_RENAME ? "rename" : ask == ASK_FAILED ? "error" : "delete", x, POPUP_Y + 11);
+    lcd.drawFastHLine(POPUP_X + 4, POPUP_Y + 21, POPUP_W - 8, TFT_DARKGREY);
+
+    if (ask == ASK_DELETE) {
+        char full[NAME_LEN + 2];
+        char shown[TITLE_MAX_CHARS + 1];
+        snprintf(full, sizeof(full), target.dir ? "%s/" : "%s", target.name);
+        pageFit(shown, full, TITLE_MAX_CHARS);
+        lcd.setTextColor(target.dir ? themeColor() : TFT_WHITE, TFT_BLACK);
+        lcd.drawString(shown, x, POPUP_Y + 40);
+        lcd.setTextSize(1);
+        if (target.dir) {
+            lcd.setTextColor(TFT_RED, TFT_BLACK);
+            lcd.drawString("and everything in it", x, POPUP_Y + 60);
+        }
+        lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        lcd.drawString("it can't be undone", x, POPUP_Y + 74);
+        lcd.drawString("enter: delete   esc: cancel", x, POPUP_Y + POPUP_H - 10);
+    } else if (ask == ASK_RENAME) {
+        textFieldDraw(newName, POPUP_X + 8, POPUP_Y + 34, POPUP_W - 16, 24);
+        lcd.setTextDatum(middle_center);
+        lcd.setTextSize(1);
+        lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        lcd.drawString("enter: save", x, POPUP_Y + 76);
+        lcd.drawString("fn+`: cancel", x, POPUP_Y + 90);
+    } else {
+        lcd.setTextColor(ask == ASK_FAILED ? TFT_RED : TFT_WHITE, TFT_BLACK);
+        lcd.drawString(ask == ASK_FAILED ? failedText : "deleting...", x, POPUP_Y + 55);
+        if (ask == ASK_FAILED) {
+            lcd.setTextSize(1);
+            lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+            lcd.drawString("any key: close", x, POPUP_Y + POPUP_H - 10);
+        }
+    }
+}
+
+static void modalDraw() {
+    if (previewing) previewDraw();
+    else askDraw();
+}
+
 static void draw() {
-    if (previewing && modalOnly) {
+    bool modal = previewing || ask != ASK_NONE;
+    if (modal && modalOnly) {
         modalOnly = false;
-        previewDraw();
+        modalDraw();
         return;
     }
     if (failed) failedDraw();
     else listDraw();
-    if (previewing) previewDraw();
+    if (modal) modalDraw();
+}
+
+// D: asks about the selected entry
+static bool deleteAsk() {
+    if (failed || selected < 1 || selected > count) return false;
+    target = entries[selected - 1];
+    ask = ASK_DELETE;
+    modalOnly = true;
+    return true;
+}
+
+// After a delete or rename: lists the folder again with the selection on the same row, or on the entry called `pick`, and reports a failure
+static bool changeDone(bool ok, const char *failure, const char *pick) {
+    char here[PATH_LEN];
+    snprintf(here, PATH_LEN, "%s", path);
+    int row = selected;
+    listOpen(here);
+    selected = min(row, rowCount() - 1);
+    for (int i = 0; pick && i < count; i++) {
+        if (!strcmp(entries[i].name, pick)) selected = i + 1; // the order may have changed
+    }
+    failedText = failure;
+    ask = !ok && !failed ? ASK_FAILED : ASK_NONE; // a card that went away shows its own message
+    return true;
+}
+
+// Enter in the delete popup
+static bool deleteRun() {
+    ask = ASK_DELETING;
+    askDraw(); // a folder with many files takes a while
+    char file[PATH_LEN];
+    return changeDone(pathJoin(file, target.name) && sdRemove(file), "couldn't delete", nullptr);
+}
+
+// R: asks for a new name for the selected entry, starting from the old one
+static bool renameAsk() {
+    if (failed || selected < 1 || selected > count) return false;
+    target = entries[selected - 1];
+    textFieldReset(newName, false);
+    snprintf(newName.text, sizeof(newName.text), "%s", target.name);
+    newName.length = newName.cursor = strlen(newName.text);
+    ask = ASK_RENAME;
+    modalOnly = true;
+    return true;
+}
+
+// Enter in the rename popup. A name that is taken is refused (the card's file system would replace that file), and so is one with a '/'.
+// Changing only the case of a name is refused too: the card's file system treats it as the name that is taken.
+static bool renameRun() {
+    if (!strcmp(newName.text, target.name)) { // unchanged
+        ask = ASK_NONE;
+        return true;
+    }
+    char from[PATH_LEN];
+    char to[PATH_LEN];
+    bool ok = newName.length > 0 && !strchr(newName.text, '/') && pathJoin(from, target.name) && pathJoin(to, newName.text) && !SD.exists(to) && SD.rename(from, to);
+    return changeDone(ok, "couldn't rename", newName.text);
 }
 
 // Moves the preview with ; . (a line) and , / (a screen)
@@ -283,6 +420,26 @@ static bool previewMove(char c) {
 }
 
 static bool handleKey(const Keyboard_Class::KeysState &keys) {
+    if (ask == ASK_FAILED) { // any key
+        ask = ASK_NONE;
+        return true;
+    }
+    if (ask == ASK_DELETE) {
+        if (keys.enter) return deleteRun();
+        if (!keys.del && !pageEscPressed(keys)) return false;
+        ask = ASK_NONE;
+        return true;
+    }
+    if (ask == ASK_RENAME) { // typing: Backspace deletes a letter, so only fn + ` cancels
+        const TextKeys &typed = textInputKeys();
+        if (typed.esc) {
+            ask = ASK_NONE;
+            return true;
+        }
+        if (typed.enter) return renameRun();
+        modalOnly = textFieldHandleKey(newName);
+        return modalOnly;
+    }
     if (keys.enter) return activate();
     if (keys.del || pageEscPressed(keys)) {
         if (!previewing) return up();
@@ -300,17 +457,29 @@ static bool handleKey(const Keyboard_Class::KeysState &keys) {
         } else if (c == '.') {  // down arrow (fn key)
             selected = (selected + 1) % rowCount();
             changed = true;
+        } else if (c == 'd' && !keys.fn) {
+            changed |= deleteAsk();
+        } else if (c == 'r' && !keys.fn) {
+            changed |= renameAsk();
         }
     }
     return changed;
 }
 
-static bool handleButton() { return activate(); }
+static bool handleButton() {
+    if (ask == ASK_DELETE || ask == ASK_RENAME) return false; // these take Enter, so a bump of the button can't do them
+    if (ask == ASK_FAILED) {
+        ask = ASK_NONE;
+        return true;
+    }
+    return activate();
+}
 
 static const Page PAGE = {0, "sd card", "files", draw, handleKey, handleButton}; // no page bar digit: settings opens it
 
 void sdBrowserOpen() {
     previewing = false;
+    ask = ASK_NONE;
     listOpen("/");
     pageOpen(&PAGE);
 }
