@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include "bluetooth.h"
 #include "settings.h"
 #include "wifi.h"
 
@@ -15,7 +16,7 @@
 // The original Cardputer has no RTC chip (the Cardputer-Adv has one), so without it the ESP32's own clock is used.
 // That one runs through light and deep sleep but is lost when the power goes or the chip resets. In deep sleep it counts
 // with the chip's internal RC oscillator, which drifts with temperature (minutes a day); awake it runs off the crystal.
-// Each Wi-Fi sync puts it right again.
+// Each Wi-Fi sync, and each time the phone connects over Bluetooth, puts it right again.
 
 // The RTC as seconds since 1970, UTC (mktime reads the fields as UTC too, as no time zone is configured)
 static time_t rtcSeconds() {
@@ -65,6 +66,9 @@ void clockSyncUpdate() {
         synced = false;
         if (M5.Rtc.isEnabled()) utcSet(time(nullptr));
     }
+
+    time_t phone;
+    if (bluetoothTime(&phone)) utcSet(phone - timezoneMinutes() * 60); // the phone knows its local time, not the offset: the time zone from settings stands in
 }
 
 int clockLocalMinutes() {

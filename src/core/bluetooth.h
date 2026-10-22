@@ -5,6 +5,9 @@
 // A phone that paired while the pairing window was open is remembered (the BLE stack keeps its keys in flash),
 // and it reconnects by itself whenever it is back in range, also after a reboot.
 // Only one phone is remembered: pairing another one needs the first forgotten.
+// Each time the phone connects, the Cardputer asks it for the time (an iPhone answers over the Current Time service, an Android phone does not).
+
+#include <time.h>
 
 static constexpr const char *BLUETOOTH_NAME = "cardputer"; // what the phone shows
 
@@ -21,3 +24,7 @@ void bluetoothForget();            // forgets the remembered phone and drops its
 enum BluetoothStatus { BLUETOOTH_NONE, BLUETOOTH_PAIRED, BLUETOOTH_CONNECTED }; // no phone remembered / remembered, not connected / connected
 BluetoothStatus bluetoothStatus();
 const char *bluetoothDevice();     // address of the remembered phone, e.g. "A4:83:E7:12:34:56", or "" (static buffer)
+
+// Call every loop(). True once each time the phone has just told its time; *local is its local date and time as seconds since 1970,
+// counted as if that were UTC (like mktime does without a time zone), so subtract the time zone offset to get UTC.
+bool bluetoothTime(time_t *local);
