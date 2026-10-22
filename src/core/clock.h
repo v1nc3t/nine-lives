@@ -13,9 +13,6 @@ void clockSyncUpdate();
 // Local time as "HH:MM". Returns a pointer to a static buffer.
 const char *clockText();
 
-// Throws the time away (back to the year 2000, which the next start sets to the firmware's build time), for deep sleep.
-void clockForget();
-
 // Local time as minutes since midnight (0..1439).
 int clockLocalMinutes();
 

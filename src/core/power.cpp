@@ -37,6 +37,7 @@ static constexpr ParkedPin PARKED_PINS[] = {
     {GPIO_NUM_14, 0}, // ... data in
     {IR_PIN, 0},      // IR LED
 };
+
 static constexpr uint32_t SLEEP_POLL_MS = 50;       // how often sleep looks for a key
 static constexpr uint32_t DARK_SLEEP_POLL_MS = 100; // ... and with power saving on, where each look wakes the chip from light sleep (BtnGO wakes it at once)
 static constexpr uint32_t SLEEP_CLOCK_CHECK_MS = 1000;
@@ -55,7 +56,7 @@ static bool idleFor(unsigned seconds) { return seconds != 0 && millis() - lastAc
 // Drives each pin to its idle level and holds it there through deep sleep.
 static void parkPins() {
     for (const auto &parked : PARKED_PINS) {
-        gpio_set_direction(parked.pin, GPIO_MODE_OUTPUT);
+        gpio_set_direction(parked.pin, GPIO_MODE_OUTPUT); // (also takes the pin back from the LED's or the speaker's driver)
         gpio_set_level(parked.pin, parked.level);
         gpio_hold_en(parked.pin);
     }
@@ -72,13 +73,15 @@ void powerBegin() {
 [[noreturn]] static void deepSleepNow() {
     auto &lcd = M5Cardputer.Display;
     lcd.setBrightness(0);
+    // The LED's signal is timed off the CPU's clock: sent at sleep's slow speed, "off" would arrive as all ones, bright white
+    setCpuFrequencyMhz(AWAKE_CPU_MHZ);
     ledOff();
+    delay(1); // the signal goes out in the background; let it finish before its pin is parked
     lcd.sleep();
     lcd.waitDisplay();
     soundPowerDown();
     M5Cardputer.Mic.end();
     wifiRadioOff();
-    clockForget(); // the time isn't kept through deep sleep
     parkPins();
 
     while (digitalRead(WAKE_PIN) == LOW) delay(10); // a hold of BtnGO brought us here: its low level would wake the chip at once
@@ -86,6 +89,10 @@ void powerBegin() {
 
     esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // the light sleep's timer would wake (and reboot) the chip at once
     esp_sleep_enable_ext0_wakeup(WAKE_PIN, 0);
+    // Besides BtnGO's wake circuit and the sleep timer, only RTC slow memory stays powered (about a microamp): the clock
+    // keeps the numbers there that turn the timer's count back into the time after the wake. Fast memory isn't needed.
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_ON);
     esp_deep_sleep_start();
 }
 

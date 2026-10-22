@@ -6,9 +6,12 @@
 //    Either way the speaker and the LED are switched off until it wakes.
 //  - deep sleep: the chip powers down (almost no battery use). Only BtnGO (the button on the side) wakes it;
 //    a wake is a full reboot, so everything starts fresh (open page, unlocked keys) - but see powerWokeFromSleep().
-//    Wi-Fi is switched off and the time is thrown away first (the next start uses the build time until it is set or synced).
+//    Wi-Fi is switched off first. The time is kept (it may drift a few minutes a day while asleep; a Wi-Fi sync fixes it).
 //    The pins the firmware drives (backlight, speaker, keyboard, LED, screen, SD card, IR LED) are parked at their idle levels and held there,
-//    because the chip would otherwise let them float and they could keep drawing current.
+//    because the chip would otherwise let them float and they could keep drawing current. Of the chip's own parts only BtnGO's
+//    wake circuit, the sleep timer and the RTC slow memory the clock needs stay powered.
+//    The Cardputer has no switches to cut power to its parts (screen, LED, SD card, speaker amp), so each is put in its lowest
+//    power state instead: the screen's controller asleep, the LED black, the amp without a clock, the SD card not selected.
 
 // Call first thing in setup(), before anything drives a pin: lets go of the pins held through deep sleep, and switches the IR LED off.
 void powerBegin();
