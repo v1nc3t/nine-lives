@@ -4,6 +4,7 @@
 #include "core/bluetooth_popup.h"
 #include "core/boot.h"
 #include "core/clock.h"
+#include "core/config.h"
 #include "core/main_screen.h"
 #include "core/page.h"
 #include "core/page_bar.h"
@@ -41,6 +42,7 @@ void setup() {
     settingsLoad();
     clockBegin();
     sdBegin();
+    configLoad(); // after the card is up: its settings file replaces the ones from flash
     if (!powerWokeFromSleep()) playBootAnimation();
     setCpuFrequencyMhz(80); // plenty for the UI, and the chip draws less (after the animation, which decodes faster at full speed)
 

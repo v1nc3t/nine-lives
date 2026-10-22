@@ -17,6 +17,8 @@ void sdBegin() {
     sdMount();
 }
 
+bool sdMounted() { return mounted; }
+
 bool sdMount() {
     if (!mounted) mounted = SD.begin(SD_CS_PIN, SPI, SD_HZ);
     return mounted;

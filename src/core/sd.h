@@ -6,6 +6,9 @@
 // Call once in setup(): starts the SPI bus and tries to mount the card.
 void sdBegin();
 
+// True if a card is mounted right now. Unlike sdMount() it never tries to mount, which can take a moment with no card in.
+bool sdMounted();
+
 // Mounts the card if it is not mounted yet (it may have been put in later). True if a card is ready.
 bool sdMount();
 

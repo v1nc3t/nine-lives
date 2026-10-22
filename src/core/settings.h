@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// User settings, kept in the chip's flash (NVS) so they survive a reboot.
+// User settings, kept in the chip's flash (NVS) so they survive a reboot, and in a file on the SD card (see config.h).
 
 // Call once in setup() after M5Cardputer.begin(): applies the saved settings.
 void settingsLoad();

@@ -36,14 +36,15 @@ Each module is one issue, and the bullet points inside it are its tasks. Order: 
 [x] Keyboard input: key events, key repeat, shift/ctrl, text input box
 [x] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
 [x] SD card: mounted at boot, a missing or broken card is handled; settings has a file browser (folders, preview of `.txt` and `.md`)
-[ ] SD card layout: folders for each module, config file
+[x] Config file: the settings are kept in `/nine-lives.conf` on the SD card, read at boot and written on every change
+[ ] SD card layout: folders for each module
 [x] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, Bluetooth pairing, time zone, cat animation and sound on/off
 [x] Power: sleep, wake, battery level, low battery warning
 [x] Time: read and set the RTC, sync with NTP over Wi-Fi or from an iPhone over Bluetooth, set by hand (used by 2FA, habits, cat game and voice memos)
 [x] Sound: play tones and chimes on the speaker (used by cat, pager, timer, messenger)
 [x] Power saving: screen turns off when idle, lower CPU speed when idle, Wi-Fi off after sync, deep sleep when nothing is running, wake with a button
 [ ] Vault key service: one place that holds the unlocked vault key in RAM and wipes it on lock; 2FA, notes, messenger and voice memos ask it to encrypt and decrypt
-[ ] Phone link (Bluetooth): pair with an iPhone once, remember it, reconnect by itself; used by the Pager (ANCS) and for iPhone time sync (Current Time Service)
+[x] Phone link (Bluetooth): pair with an iPhone once, remember it, reconnect by itself; used by the Pager (ANCS) and for iPhone time sync (Current Time Service)
 
 ## 1. Vault (Hoard)
 [ ] Encryption: AES-256 (GCM mode, so changes to the file are detected) with mbedTLS, key made from the passphrase (PBKDF2), new random IV on every save

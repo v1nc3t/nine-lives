@@ -4,6 +4,7 @@
 #include <Preferences.h>
 #include <cstring>
 
+#include "config.h"
 #include "sound.h"
 #include "theme.h"
 
@@ -72,6 +73,7 @@ static void save(const char *key, int value) {
     prefs.begin(NAMESPACE, false);
     prefs.putUChar(key, value);
     prefs.end();
+    configSave();
 }
 
 void settingsLoad() {
