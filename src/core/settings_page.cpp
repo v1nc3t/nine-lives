@@ -1,6 +1,8 @@
 #include "settings_page.h"
 #include "theme.h"
 
+#include "bluetooth.h"
+#include "bluetooth_popup.h"
 #include "clock.h"
 #include "page.h"
 #include "sd.h"
@@ -10,11 +12,12 @@
 #include "wifi.h"
 #include "wifi_popup.h"
 
-enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_SOUND, ROW_PLAY_SOUND, ROW_VOLUME, ROW_SD, ROW_COUNT };
+enum Row { ROW_BACK, ROW_BRIGHTNESS, ROW_WIFI, ROW_CONNECT, ROW_BLUETOOTH, ROW_PAIR, ROW_TIME, ROW_TIMEZONE, ROW_SLEEP, ROW_DEEP_SLEEP, ROW_SAVING, ROW_LED, ROW_LED_COLOR, ROW_THEME, ROW_SOUND, ROW_PLAY_SOUND, ROW_VOLUME, ROW_SD, ROW_COUNT };
 
 static int selected = ROW_BACK;
 static int top = ROW_BACK; // first row shown: there are more rows than fit on the screen
-static char drawnNetwork[33] = ""; // network name on the connect row right now
+static char drawnNetwork[33] = ""; // network name as of the last full draw
+static BluetoothStatus drawnBluetooth = BLUETOOTH_NONE; // phone status as of the last full draw
 
 static constexpr int BAR_SEGMENTS = BRIGHTNESS_MAX; // the LED bar has the same number (LED_MAX)
 static_assert(LED_MAX == BRIGHTNESS_MAX && VOLUME_MAX == BRIGHTNESS_MAX, "all three rows share one bar size");
@@ -92,13 +95,20 @@ static void wifiRowDraw() { valueRowDraw(ROW_WIFI, "wifi", wifiEnabled() ? "on" 
 static void connectRowDraw() {
     rowLabelDraw(ROW_CONNECT, "connect");
     auto &lcd = M5Cardputer.Display;
-    strcpy(drawnNetwork, wifiSsid());
     char name[16];
     if (drawnNetwork[0] == 0) strcpy(name, "not connected");
     else if (strlen(drawnNetwork) <= 14) strcpy(name, drawnNetwork);
     else snprintf(name, sizeof(name), "%.12s..", drawnNetwork);
     lcd.setTextDatum(middle_right);
     lcd.drawString(name, lcd.width() - 8, rowY(ROW_CONNECT) + PAGE_ROW_H / 2);
+}
+
+static void pairRowDraw() {
+    static const char *const STATUS[] = {"not paired", "paired", "connected"};
+    rowLabelDraw(ROW_PAIR, "pair");
+    auto &lcd = M5Cardputer.Display;
+    lcd.setTextDatum(middle_right);
+    lcd.drawString(STATUS[drawnBluetooth], lcd.width() - 8, rowY(ROW_PAIR) + PAGE_ROW_H / 2);
 }
 
 static int timeHours() { return timeDigits[0] * 10 + timeDigits[1]; }
@@ -166,6 +176,8 @@ static void rowDraw(Row row) {
     case ROW_TIMEZONE:   valueRowDraw(ROW_TIMEZONE, "time zone", timezoneLabel()); break;
     case ROW_WIFI:       wifiRowDraw(); break;
     case ROW_CONNECT:    connectRowDraw(); break;
+    case ROW_BLUETOOTH:  valueRowDraw(ROW_BLUETOOTH, "bluetooth", bluetoothEnabled() ? "on" : "off"); break;
+    case ROW_PAIR:       pairRowDraw(); break;
     case ROW_COUNT:      break;
     }
 }
@@ -179,6 +191,9 @@ void settingsPageDraw() {
     if (selected < top) top = selected;
     if (selected >= top + visibleRows()) top = selected - visibleRows() + 1;
 
+    // Here, not in connectRowDraw(): with that row scrolled off the screen it was never updated and settingsPageUpdate() redrew every 500 ms
+    strcpy(drawnNetwork, wifiSsid());
+    drawnBluetooth = bluetoothStatus();
     pageFrameDraw();
     for (int row = top; row < ROW_COUNT && row < top + visibleRows(); row++) rowDraw((Row)row);
     pageScrollBarDraw(top, visibleRows(), ROW_COUNT);
@@ -193,6 +208,7 @@ void settingsPageDraw() {
 static void savingFlip() {
     powerSavingSet(!powerSaving());
     wifiApply();
+    bluetoothApply();
 }
 
 static bool valueStep(int dir) {
@@ -237,6 +253,9 @@ static bool valueStep(int dir) {
         return timezoneLevel() != before;
     case ROW_WIFI:
         wifiSetEnabled(!wifiEnabled()); // either arrow flips it
+        return true;
+    case ROW_BLUETOOTH:
+        bluetoothSetEnabled(!bluetoothEnabled()); // either arrow flips it
         return true;
     case ROW_SAVING:
         savingFlip();
@@ -288,10 +307,10 @@ bool settingsPageHandleButton() {
 
 bool settingsPageUpdate() {
     static uint32_t last = 0;
-    // The connect row shows the joined network, which can change on its own (a rejoin after boot, a lost signal)
+    // The connect and pair rows show things that change on their own (a rejoin after boot, a lost signal, the phone coming or going)
     if (millis() - last < 500) return false;
     last = millis();
-    return strcmp(wifiSsid(), drawnNetwork) != 0;
+    return strcmp(wifiSsid(), drawnNetwork) != 0 || bluetoothStatus() != drawnBluetooth;
 }
 
 bool settingsPageHandleKey(const Keyboard_Class::KeysState &keys) {
@@ -306,6 +325,14 @@ bool settingsPageHandleKey(const Keyboard_Class::KeysState &keys) {
     // Enter on the wifi row flips it, on the connect row it opens the popup
     if (selected == ROW_WIFI && keys.enter) {
         wifiSetEnabled(!wifiEnabled());
+        return true;
+    }
+    if (selected == ROW_BLUETOOTH && keys.enter) {
+        bluetoothSetEnabled(!bluetoothEnabled());
+        return true;
+    }
+    if (selected == ROW_PAIR && keys.enter) {
+        bluetoothPopupOpen();
         return true;
     }
     if (selected == ROW_SAVING && keys.enter) {

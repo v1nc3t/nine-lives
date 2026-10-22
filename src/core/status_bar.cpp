@@ -2,6 +2,7 @@
 
 #include <M5Cardputer.h>
 
+#include "bluetooth.h"
 #include "clock.h"
 #include "settings.h"
 #include "wifi.h"
@@ -13,6 +14,7 @@ static char drawnClock[6] = ""; // clock text shown right now
 static int drawnLevel = -1;   // battery level shown right now
 static bool drawnLow = false; // whether it was drawn as a warning
 static int drawnWifi = -1;    // Wi-Fi icon shown right now (see wifiState)
+static int drawnBluetooth = -1; // Bluetooth icon shown right now (see bluetoothState)
 
 enum WifiState { WIFI_OFF_STATE, WIFI_SEARCHING, WIFI_JOINED };
 
@@ -37,6 +39,25 @@ static void wifiIconDraw(int x, int y, int state) {
     if (state == WIFI_OFF_STATE) lcd.drawLine(x, y, x + 12, y + 10, TFT_RED);
 }
 
+enum BluetoothState { BLUETOOTH_OFF_STATE, BLUETOOTH_WAITING, BLUETOOTH_LINKED };
+
+static int bluetoothState() {
+    if (!bluetoothEnabled()) return BLUETOOTH_OFF_STATE;
+    return bluetoothStatus() == BLUETOOTH_CONNECTED ? BLUETOOTH_LINKED : BLUETOOTH_WAITING;
+}
+
+// 7 x 11 pixels: the Bluetooth rune. Same colors as the Wi-Fi icon: grey with a red slash when off, white while on, green when a phone is connected.
+static void bluetoothIconDraw(int x, int y, int state) {
+    auto &lcd = M5Cardputer.Display;
+    uint16_t color = state == BLUETOOTH_LINKED ? TFT_GREEN : state == BLUETOOTH_WAITING ? TFT_WHITE : TFT_DARKGREY;
+    lcd.drawLine(x + 3, y, x + 3, y + 10, color);
+    lcd.drawLine(x + 3, y, x + 6, y + 3, color);
+    lcd.drawLine(x + 6, y + 3, x, y + 8, color);
+    lcd.drawLine(x + 3, y + 10, x + 6, y + 7, color);
+    lcd.drawLine(x + 6, y + 7, x, y + 2, color);
+    if (state == BLUETOOTH_OFF_STATE) lcd.drawLine(x - 1, y, x + 7, y + 10, TFT_RED);
+}
+
 static bool isLow(int level) {
     return level <= LOW_LEVEL && M5Cardputer.Power.isCharging() != m5::Power_Class::is_charging;
 }
@@ -58,7 +79,10 @@ static void draw(int level, bool low) {
     lcd.drawString(battery, w - 4, STATUS_BAR_H / 2);
 
     drawnWifi = wifiState();
-    wifiIconDraw(w - 4 - lcd.textWidth(battery) - 6 - 13, 1, drawnWifi);
+    int wifiX = w - 4 - lcd.textWidth(battery) - 6 - 13;
+    wifiIconDraw(wifiX, 1, drawnWifi);
+    drawnBluetooth = bluetoothState();
+    bluetoothIconDraw(wifiX - 6 - 7, 1, drawnBluetooth);
     drawnLevel = level;
     drawnLow = low;
 }
@@ -75,5 +99,5 @@ void statusBarUpdate() {
 
     int level = M5Cardputer.Power.getBatteryLevel();
     bool low = isLow(level);
-    if (level != drawnLevel || low != drawnLow || wifiState() != drawnWifi || strcmp(clockText(), drawnClock) != 0) draw(level, low);
+    if (level != drawnLevel || low != drawnLow || wifiState() != drawnWifi || bluetoothState() != drawnBluetooth || strcmp(clockText(), drawnClock) != 0) draw(level, low);
 }

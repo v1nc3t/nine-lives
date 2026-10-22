@@ -32,10 +32,10 @@ void timezoneSet(int level);      // clamps and saves
 const char *timezoneLabel();      // e.g. "UTC", "UTC+2", "UTC+5:30"
 int timezoneMinutes();            // offset from UTC, negative west of it
 
-// Power saving: Wi-Fi is off (and can't be switched on, so the clock isn't synced), and the idle sleep screen is dark
+// Power saving: Wi-Fi and Bluetooth are off (and can't be switched on, so the clock isn't synced), and the idle sleep screen is dark
 // instead of showing the clock (see power.h). Off by default.
 bool powerSaving();
-void powerSavingSet(bool on); // saves; the caller applies it to the radio with wifiApply() (wifi.h)
+void powerSavingSet(bool on); // saves; the caller applies it to the radios with wifiApply() (wifi.h) and bluetoothApply() (bluetooth.h)
 
 // Sound on or off (see sound.h). On by default.
 bool soundOn();
@@ -54,6 +54,10 @@ void volumeSet(int level); // clamps, applies to the speaker and saves
 // Wi-Fi radio on or off (see wifi.h for switching it; this is only what is saved). Off by default.
 bool wifiOn();
 void wifiOnSet(bool on); // saves
+
+// Bluetooth radio on or off (see bluetooth.h for switching it; this is only what is saved). Off by default.
+bool bluetoothOn();
+void bluetoothOnSet(bool on); // saves
 
 // RGB LED on the front, as a brightness step from LED_MIN (off) to LED_MAX and one of a short list of colors.
 static constexpr int LED_MIN = 0;

@@ -1,5 +1,7 @@
 #include <M5Cardputer.h>
 
+#include "core/bluetooth.h"
+#include "core/bluetooth_popup.h"
 #include "core/boot.h"
 #include "core/clock.h"
 #include "core/main_screen.h"
@@ -14,7 +16,7 @@
 #include "core/wifi.h"
 #include "core/wifi_popup.h"
 
-// Draws the open page, or the main screen with the page bar, and the Wi-Fi popup on top if it is open.
+// Draws the open page, or the main screen with the page bar, and the Wi-Fi or Bluetooth popup on top if one is open.
 static void pageDraw() {
     if (const Page *page = pageOpened()) {
         page->draw();
@@ -28,6 +30,7 @@ static void pageDraw() {
         pageBarDraw();
     }
     if (wifiPopupIsOpen()) wifiPopupDraw();
+    if (bluetoothPopupIsOpen()) bluetoothPopupDraw();
 }
 
 void setup() {
@@ -42,6 +45,7 @@ void setup() {
     setCpuFrequencyMhz(80); // plenty for the UI, and the chip draws less (after the animation, which decodes faster at full speed)
 
     wifiBegin();
+    bluetoothApply();
 
     statusBarDraw();
     pageDraw();
@@ -71,6 +75,12 @@ void loop() {
         changed |= wifiPopupUpdate();
         if (changed && wifiPopupIsOpen()) wifiPopupDraw(); // only the popup changed
         else redraw = changed;                             // it closed: the screen under it needs repainting
+    } else if (bluetoothPopupIsOpen()) { // same for the Bluetooth popup
+        bool changed = keyPressed && bluetoothPopupHandleKey(M5Cardputer.Keyboard.keysState());
+        if (M5Cardputer.BtnA.wasPressed()) changed |= bluetoothPopupHandleButton();
+        changed |= bluetoothPopupUpdate();
+        if (changed && bluetoothPopupIsOpen()) bluetoothPopupDraw();
+        else redraw = changed;
     } else if (const Page *page = pageOpened()) {
         if (keyPressed) redraw = page->handleKey(M5Cardputer.Keyboard.keysState());
         if (page->handleButton && M5Cardputer.BtnA.wasPressed()) redraw |= page->handleButton();
@@ -83,6 +93,10 @@ void loop() {
                 redraw |= pageBarHandleKey(c);
                 if (c == '-' && !keys.fn) { // shortcut to the Wi-Fi networks
                     wifiPopupOpen();
+                    redraw = true;
+                }
+                if (c == '=' && !keys.fn) { // shortcut to the Bluetooth phone link
+                    bluetoothPopupOpen();
                     redraw = true;
                 }
             }

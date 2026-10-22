@@ -40,6 +40,7 @@ static int led = LED_DEFAULT;
 static int ledColor = LED_COLOR_DEFAULT;
 static int theme = 0;
 static bool wifi = false;
+static bool bluetooth = false;
 static bool saving = false;
 static bool sound = true;
 static int soundChoice = 0;
@@ -84,6 +85,7 @@ void settingsLoad() {
     ledColor = constrain((int)prefs.getUChar("ledcolor", LED_COLOR_DEFAULT), 0, LED_COLOR_COUNT - 1);
     theme = constrain((int)prefs.getUChar("theme", 0), 0, themeCount() - 1);
     wifi = prefs.getUChar("wifi", 0) != 0;
+    bluetooth = prefs.getUChar("bluetooth", 0) != 0;
     saving = prefs.getUChar("saving", 0) != 0;
     sound = prefs.getUChar("sound", 1) != 0;
     soundChoice = constrain((int)prefs.getUChar("soundchoice", 0), 0, soundCount() - 1);
@@ -190,6 +192,14 @@ void wifiOnSet(bool on) {
     if (on == wifi) return;
     wifi = on;
     save("wifi", wifi);
+}
+
+bool bluetoothOn() { return bluetooth; }
+
+void bluetoothOnSet(bool on) {
+    if (on == bluetooth) return;
+    bluetooth = on;
+    save("bluetooth", bluetooth);
 }
 
 int ledLevel() { return led; }

@@ -4,6 +4,7 @@
 #include <driver/gpio.h>
 #include <esp_sleep.h>
 
+#include "bluetooth.h"
 #include "clock.h"
 #include "settings.h"
 #include "sound.h"
@@ -82,6 +83,7 @@ void powerBegin() {
     soundPowerDown();
     M5Cardputer.Mic.end();
     wifiRadioOff();
+    bluetoothRadioOff();
     parkPins();
 
     while (digitalRead(WAKE_PIN) == LOW) delay(10); // a hold of BtnGO brought us here: its low level would wake the chip at once
@@ -107,7 +109,7 @@ static void sleepNow() {
     soundPowerDown();
     ledOff();
     wifiLowPower(true);
-    if (!wifiEnabled()) setCpuFrequencyMhz(SLEEP_CPU_MHZ); // the radio needs the full 80 MHz to stay connected
+    if (!wifiEnabled() && !bluetoothEnabled()) setCpuFrequencyMhz(SLEEP_CPU_MHZ); // the radios need the full 80 MHz to stay connected
 
     lcd.setBrightness(0);
     lcd.fillScreen(TFT_BLACK);

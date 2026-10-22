@@ -37,7 +37,7 @@ Each module is one issue, and the bullet points inside it are its tasks. Order: 
 [x] UI parts: lists, dialogs, text editor, scrolling, fonts for the small screen
 [x] SD card: mounted at boot, a missing or broken card is handled; settings has a file browser (folders, preview of `.txt` and `.md`)
 [ ] SD card layout: folders for each module, config file
-[x] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, time zone, cat animation and sound on/off
+[x] Settings: brightness, screen timeout, volume, auto-lock time, Wi-Fi login, Bluetooth pairing, time zone, cat animation and sound on/off
 [x] Power: sleep, wake, battery level, low battery warning
 [x] Time: read and set the RTC, sync with NTP over Wi-Fi or from an iPhone over Bluetooth, set by hand (used by 2FA, habits, cat game and voice memos)
 [x] Sound: play tones and chimes on the speaker (used by cat, pager, timer, messenger)
